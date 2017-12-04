@@ -35,6 +35,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
 /**
+ * This is the main class of MoniCopy.
  *
  * @author Thomas Kuenneth
  */
@@ -43,8 +44,6 @@ public class Main extends Application {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
-
-    private static TextArea ta = null;
 
     private final FileCopier copier = new FileCopier();
     private final FileStore store = new FileStore();
@@ -61,6 +60,7 @@ public class Main extends Application {
     private File fileFrom = null;
     private File fileTo = null;
     private Button button = null;
+    private TextArea ta = null;
 
     @Override
     public void start(Stage primaryStage) {
@@ -88,6 +88,7 @@ public class Main extends Application {
         button = new Button("Start");
         button.setOnAction((ActionEvent event) -> {
             ta = new TextArea();
+            ta.setEditable(false);
             VBox root = new VBox(ta);
             root.setPadding(new Insets(20, 20, 20, 20));
             Scene scene = new Scene(root);
@@ -120,17 +121,26 @@ public class Main extends Application {
             if (fileToCopy == null) {
                 continue;
             }
+            final File _f = fileToCopy;
             File destination = new File(to,
                     fileToCopy.getAbsolutePath().substring(offset));
-            message(String.format("processing %s",
-                    fileToCopy.getAbsolutePath()));
             if (mustBeCopied(fileToCopy, destination)) {
                 boolean ok = copier.copy(fileToCopy, destination);
                 if (!ok) {
-                    message("error");
+                    String msg = String.format("Could not copy %s: %s\n",
+                            _f.getAbsolutePath(),
+                            copier.getLastLocalizedMessage());
+                    message(msg);
                 }
             }
         }
+        message("Done!");
+    }
+
+    private void message(String msg) {
+        Platform.runLater(() -> {
+            ta.appendText(msg);
+        });
     }
 
     private File getFileFromPreferences(String key) {
@@ -194,17 +204,6 @@ public class Main extends Application {
         }
         boolean notEqual = !sb1.toString().equals(sb2.toString());
         return notEqual;
-    }
-
-    public static void message(String msg) {
-        if (ta == null) {
-            System.out.println(msg);
-        } else {
-            Platform.runLater(() -> {
-                ta.appendText(msg);
-                ta.appendText("\n");
-            });
-        }
     }
 
     /**

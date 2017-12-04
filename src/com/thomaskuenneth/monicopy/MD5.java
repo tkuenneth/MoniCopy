@@ -22,6 +22,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
+ * This class calculates md5 hashes.
  *
  * @author Thomas Kuenneth
  */

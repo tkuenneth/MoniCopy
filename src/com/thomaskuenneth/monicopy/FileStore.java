@@ -21,12 +21,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * This class implements a queue with the files to be copied.
  *
  * @author Thomas Kuenneth
  */
 public class FileStore {
 
-    private static final Logger LOGGER = Logger.getLogger(FileStore.class.getName());
+    private static final Logger LOGGER
+            = Logger.getLogger(FileStore.class.getName());
 
     private final ArrayBlockingQueue<File> queue;
 
@@ -59,14 +61,15 @@ public class FileStore {
 
     private void _fill(File file) {
         if (file == null) {
-            Main.message("called _fill with null file");
+            LOGGER.log(Level.SEVERE, "called _fill with null file");
             return;
         }
         if (file.isDirectory()) {
-            Main.message(String.format("filling from %s", file.getAbsolutePath()));
+            LOGGER.log(Level.INFO, String.format("filling from %s",
+                    file.getAbsolutePath()));
             File[] files = file.listFiles();
             if (files == null) {
-                Main.message("listFiles() returned null");
+                LOGGER.log(Level.SEVERE, "listFiles() returned null");
             } else {
                 for (File child : files) {
                     _fill(child);
@@ -76,7 +79,8 @@ public class FileStore {
             try {
                 queue.put(file);
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.SEVERE, "interruption while waiting for put()", ex);
+                LOGGER.log(Level.SEVERE, "interruption while waiting for put()",
+                        ex);
             }
         }
     }

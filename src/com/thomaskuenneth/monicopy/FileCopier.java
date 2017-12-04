@@ -23,14 +23,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * This class copies files.
  *
  * @author Thomas Kuenneth
  */
 public class FileCopier {
 
-    private static final Logger LOGGER = Logger.getLogger(FileCopier.class.getName());
+    private static final Logger LOGGER
+            = Logger.getLogger(FileCopier.class.getName());
 
     private final byte[] buffer;
+
+    private String lastLocalizedMessage = null;
 
     public FileCopier() {
         this(32 * 1024);
@@ -38,6 +42,10 @@ public class FileCopier {
 
     public FileCopier(int bufsize) {
         buffer = new byte[bufsize];
+    }
+
+    public String getLastLocalizedMessage() {
+        return lastLocalizedMessage;
     }
 
     public synchronized boolean copy(File from, File to) {
@@ -59,6 +67,8 @@ public class FileCopier {
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "error while copying", e);
+            lastLocalizedMessage = e.getLocalizedMessage();
+            return false;
         }
         return lenFrom == to.length();
     }
