@@ -16,6 +16,7 @@
 package com.thomaskuenneth.monicopy;
 
 import java.io.File;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
@@ -44,6 +45,7 @@ public class Main extends Application {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
+    private static final String EMPTY_STRING = "";
 
     private final FileCopier copier = new FileCopier();
     private final FileStore store = new FileStore();
@@ -56,6 +58,9 @@ public class Main extends Application {
 
     private final Preferences prefs = Preferences.userNodeForPackage(Main.class);
 
+    private final ResourceBundle messages
+            = ResourceBundle.getBundle("com.thomaskuenneth.monicopy.messages");
+
     private Stage primaryStage = null;
     private File fileFrom = null;
     private File fileTo = null;
@@ -67,7 +72,7 @@ public class Main extends Application {
         this.primaryStage = primaryStage;
         fileFrom = getFileFromPreferences(KEY_FILE_FROM);
         fileTo = getFileFromPreferences(KEY_FILE_TO);
-        Text t1 = new Text("Copy all files and folders inside");
+        Text t1 = new Text(getString("string1"));
         Hyperlink t2 = new Hyperlink();
         updateHyperLink(t2, fileFrom);
         t2.setOnAction((ActionEvent event) -> {
@@ -76,7 +81,7 @@ public class Main extends Application {
             updateCopyButton();
             setPreferencesFromFile(fileFrom, KEY_FILE_FROM);
         });
-        Text t3 = new Text("to");
+        Text t3 = new Text(getString("to"));
         Hyperlink t4 = new Hyperlink();
         updateHyperLink(t4, fileTo);
         t4.setOnAction((ActionEvent event) -> {
@@ -85,7 +90,7 @@ public class Main extends Application {
             updateCopyButton();
             setPreferencesFromFile(fileTo, KEY_FILE_TO);
         });
-        button = new Button("Start");
+        button = new Button(getString("start"));
         button.setOnAction((ActionEvent event) -> {
             ta = new TextArea();
             ta.setEditable(false);
@@ -107,7 +112,7 @@ public class Main extends Application {
         VBox root = new VBox(10, t1, t2, t3, t4, box);
         root.setPadding(new Insets(20, 20, 20, 20));
         Scene scene = new Scene(root);
-        primaryStage.setTitle("MoniCopy");
+        primaryStage.setTitle(getString("title"));
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -127,17 +132,18 @@ public class Main extends Application {
             if (mustBeCopied(fileToCopy, destination)) {
                 boolean ok = copier.copy(fileToCopy, destination);
                 if (!ok) {
-                    String msg = String.format("Could not copy %s: %s\n",
+                    String msg = String.format(getString("could_not_copy"),
                             _f.getAbsolutePath(),
                             copier.getLastLocalizedMessage());
                     message(msg);
                 }
             }
         }
-        message("Done!");
+        message(getString("done"));
     }
 
     private void message(String msg) {
+        LOGGER.log(Level.INFO, msg);
         Platform.runLater(() -> {
             ta.appendText(msg);
         });
@@ -145,15 +151,19 @@ public class Main extends Application {
 
     private File getFileFromPreferences(String key) {
         File result = null;
-        String val = prefs.get(key, "");
+        String val = prefs.get(key, EMPTY_STRING);
         if ((val != null) && (val.length() > 0)) {
             result = new File(val);
         }
         return result;
     }
 
+    private String getString(String key) {
+        return messages.getString(key);
+    }
+
     private void setPreferencesFromFile(File dir, String key) {
-        String val = "";
+        String val = EMPTY_STRING;
         if (dir != null) {
             val = dir.getAbsolutePath();
         }
