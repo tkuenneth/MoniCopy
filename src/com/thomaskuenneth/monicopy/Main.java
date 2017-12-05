@@ -29,6 +29,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -46,6 +47,11 @@ public class Main extends Application {
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
     private static final String EMPTY_STRING = "";
+
+    private enum STATE {
+        IDLE, COPYING, PAUSED, FINISHED
+    }
+    private STATE state;
 
     private final FileCopier copier = new FileCopier();
     private final FileStore store = new FileStore();
@@ -66,9 +72,11 @@ public class Main extends Application {
     private File fileTo = null;
     private Button button = null;
     private TextArea ta = null;
+    private BorderPane root = null;
 
     @Override
     public void start(Stage primaryStage) {
+        state = STATE.IDLE;
         this.primaryStage = primaryStage;
         fileFrom = getFileFromPreferences(KEY_FILE_FROM);
         fileTo = getFileFromPreferences(KEY_FILE_TO);
@@ -76,41 +84,60 @@ public class Main extends Application {
         Hyperlink t2 = new Hyperlink();
         updateHyperLink(t2, fileFrom);
         t2.setOnAction((ActionEvent event) -> {
-            fileFrom = selectDir(fileFrom);
-            updateHyperLink(t2, fileFrom);
-            updateCopyButton();
-            setPreferencesFromFile(fileFrom, KEY_FILE_FROM);
+            File result = selectDir(fileFrom, getString("sourceDir"));
+            if (result != null) {
+                fileFrom = result;
+                updateHyperLink(t2, fileFrom);
+                updateCopyButton();
+                setPreferencesFromFile(fileFrom, KEY_FILE_FROM);
+            }
         });
         Text t3 = new Text(getString("to"));
         Hyperlink t4 = new Hyperlink();
         updateHyperLink(t4, fileTo);
         t4.setOnAction((ActionEvent event) -> {
-            fileTo = selectDir(fileTo);
-            updateHyperLink(t4, fileTo);
-            updateCopyButton();
-            setPreferencesFromFile(fileTo, KEY_FILE_TO);
+            File result = selectDir(fileTo, getString("destinationDir"));
+            if (result != null) {
+                fileTo = result;
+                updateHyperLink(t4, fileTo);
+                updateCopyButton();
+                setPreferencesFromFile(fileTo, KEY_FILE_TO);
+            }
         });
-        button = new Button(getString("start"));
+        button = new Button();
         button.setOnAction((ActionEvent event) -> {
-            ta = new TextArea();
-            ta.setEditable(false);
-            VBox root = new VBox(ta);
-            root.setPadding(new Insets(20, 20, 20, 20));
-            Scene scene = new Scene(root);
-            primaryStage.setScene(scene);
-
-            Thread t = new Thread(() -> {
-                copy(fileFrom, fileTo);
-            });
-            t.start();
+            switch (state) {
+                case IDLE:
+                    state = STATE.COPYING;
+                    ta = new TextArea();
+                    ta.setEditable(false);
+                    root.setCenter(ta);
+                    Thread t = new Thread(() -> {
+                        copy(fileFrom, fileTo);
+                    });
+                    t.start();
+                    break;
+                case COPYING:
+                    state = STATE.PAUSED;
+                    break;
+                case PAUSED:
+                    state = STATE.COPYING;
+                    break;
+                case FINISHED:
+                    Platform.exit();
+                    break;
+            }
+            updateCopyButton();
         });
         updateCopyButton();
 
-        HBox box = new HBox(button);
-        box.setAlignment(Pos.CENTER);
-
-        VBox root = new VBox(10, t1, t2, t3, t4, box);
+        VBox center = new VBox(t1, t2, t3, t4);
+        HBox bottom = new HBox(button);
+        BorderPane.setMargin(bottom, new Insets(20, 0, 0, 0));
+        bottom.setAlignment(Pos.CENTER);
+        root = new BorderPane(center);
         root.setPadding(new Insets(20, 20, 20, 20));
+        root.setBottom(bottom);
         Scene scene = new Scene(root);
         primaryStage.setTitle(getString("title"));
         primaryStage.setScene(scene);
@@ -126,6 +153,13 @@ public class Main extends Application {
             if (fileToCopy == null) {
                 continue;
             }
+            while (state == STATE.PAUSED) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {
+                    LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
+                }
+            }
             final File _f = fileToCopy;
             File destination = new File(to,
                     fileToCopy.getAbsolutePath().substring(offset));
@@ -140,6 +174,8 @@ public class Main extends Application {
             }
         }
         message(getString("done"));
+        state = STATE.FINISHED;
+        updateCopyButton();
     }
 
     private void message(String msg) {
@@ -170,9 +206,9 @@ public class Main extends Application {
         prefs.put(key, val);
     }
 
-    private File selectDir(File current) {
+    private File selectDir(File current, String title) {
         DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("JavaFX Projects");
+        chooser.setTitle(title);
         chooser.setInitialDirectory(current);
         File selectedDirectory = chooser.showDialog(primaryStage);
         return selectedDirectory;
@@ -183,7 +219,23 @@ public class Main extends Application {
     }
 
     private void updateCopyButton() {
-        button.setDisable(fileFrom == null || fileTo == null);
+        Platform.runLater(() -> {
+            button.setDisable(fileFrom == null || fileTo == null);
+            switch (state) {
+                case IDLE:
+                    button.setText(getString("start"));
+                    break;
+                case COPYING:
+                    button.setText(getString("pause"));
+                    break;
+                case PAUSED:
+                    button.setText(getString("continue"));
+                    break;
+                case FINISHED:
+                    button.setText(getString("close"));
+                    break;
+            }
+        });
     }
 
     private synchronized boolean mustBeCopied(File fileToCopy, File destination) {
@@ -212,8 +264,8 @@ public class Main extends Application {
             LOGGER.log(Level.SEVERE, "interruption while joining threads", e);
             return true;
         }
-        boolean notEqual = !sb1.toString().equals(sb2.toString());
-        return notEqual;
+        boolean copy = !sb1.toString().equals(sb2.toString());
+        return copy;
     }
 
     /**
