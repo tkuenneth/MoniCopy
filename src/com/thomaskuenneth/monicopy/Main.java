@@ -67,6 +67,8 @@ public class Main extends Application {
     private final ResourceBundle messages
             = ResourceBundle.getBundle("com.thomaskuenneth.monicopy.messages");
 
+    private final Object lock = new Object();
+
     private Stage primaryStage = null;
     private File fileFrom = null;
     private File fileTo = null;
@@ -122,6 +124,9 @@ public class Main extends Application {
                     break;
                 case PAUSED:
                     state = STATE.COPYING;
+                    synchronized (lock) {
+                        lock.notifyAll();
+                    }
                     break;
                 case FINISHED:
                     Platform.exit();
@@ -153,11 +158,16 @@ public class Main extends Application {
             if (fileToCopy == null) {
                 continue;
             }
-            while (state == STATE.PAUSED) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                    LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
+            synchronized (lock) {
+                if (state == STATE.PAUSED) {
+                    try {
+                        LOGGER.log(Level.INFO, "puasing");
+                        lock.wait();
+                    } catch (InterruptedException ex) {
+                        LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
+                    } finally {
+                        LOGGER.log(Level.INFO, "resuming");
+                    }
                 }
             }
             final File _f = fileToCopy;
