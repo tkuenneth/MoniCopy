@@ -114,10 +114,7 @@ public class Main extends Application {
                     ta = new TextArea();
                     ta.setEditable(false);
                     root.setCenter(ta);
-                    Thread t = new Thread(() -> {
-                        copy(fileFrom, fileTo);
-                    });
-                    t.start();
+                    copy(fileFrom, fileTo);
                     break;
                 case COPYING:
                     state = STATE.PAUSED;
@@ -150,42 +147,45 @@ public class Main extends Application {
     }
 
     private void copy(File from, File to) {
-        int offset = from.getAbsolutePath().length() + 1;
-        store.fill(from);
-        File fileToCopy;
-        while (((fileToCopy = store.poll()) != null)
-                || (store.isFilling())) {
-            if (fileToCopy == null) {
-                continue;
-            }
-            synchronized (lock) {
-                if (state == STATE.PAUSED) {
-                    try {
-                        LOGGER.log(Level.INFO, "puasing");
-                        lock.wait();
-                    } catch (InterruptedException ex) {
-                        LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
-                    } finally {
-                        LOGGER.log(Level.INFO, "resuming");
+        Thread t = new Thread(() -> {
+            int offset = from.getAbsolutePath().length() + 1;
+            store.fill(from);
+            File fileToCopy;
+            while (((fileToCopy = store.poll()) != null)
+                    || (store.isFilling())) {
+                if (fileToCopy == null) {
+                    continue;
+                }
+                synchronized (lock) {
+                    if (state == STATE.PAUSED) {
+                        try {
+                            LOGGER.log(Level.INFO, "pausing");
+                            lock.wait();
+                        } catch (InterruptedException ex) {
+                            LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
+                        } finally {
+                            LOGGER.log(Level.INFO, "resuming");
+                        }
+                    }
+                }
+                final File _f = fileToCopy;
+                File destination = new File(to,
+                        fileToCopy.getAbsolutePath().substring(offset));
+                if (mustBeCopied(fileToCopy, destination)) {
+                    boolean ok = copier.copy(fileToCopy, destination);
+                    if (!ok) {
+                        String msg = String.format(getString("could_not_copy"),
+                                _f.getAbsolutePath(),
+                                copier.getLastLocalizedMessage());
+                        message(msg);
                     }
                 }
             }
-            final File _f = fileToCopy;
-            File destination = new File(to,
-                    fileToCopy.getAbsolutePath().substring(offset));
-            if (mustBeCopied(fileToCopy, destination)) {
-                boolean ok = copier.copy(fileToCopy, destination);
-                if (!ok) {
-                    String msg = String.format(getString("could_not_copy"),
-                            _f.getAbsolutePath(),
-                            copier.getLastLocalizedMessage());
-                    message(msg);
-                }
-            }
-        }
-        message(getString("done"));
-        state = STATE.FINISHED;
-        updateCopyButton();
+            message(getString("done"));
+            state = STATE.FINISHED;
+            updateCopyButton();
+        });
+        t.start();
     }
 
     private void message(String msg) {
