@@ -172,7 +172,13 @@ public class Main extends Application {
                 File destination = new File(to,
                         fileToCopy.getAbsolutePath().substring(offset));
                 if (mustBeCopied(fileToCopy, destination)) {
-                    boolean ok = copier.copy(fileToCopy, destination);
+                    boolean ok;
+                    if (md1.isAtomic()) {
+                        ok = copier.copy(md1.getBuffer(),
+                                (int) fileToCopy.length(), destination);
+                    } else {
+                        ok = copier.copy(fileToCopy, destination);
+                    }
                     if (!ok) {
                         String msg = String.format(getString("could_not_copy"),
                                 _f.getAbsolutePath(),
