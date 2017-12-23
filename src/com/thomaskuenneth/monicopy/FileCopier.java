@@ -72,4 +72,17 @@ public class FileCopier {
         }
         return lenFrom == to.length();
     }
+
+    public synchronized boolean copy(byte[] from, int lenFrom, File to) {
+        File parent = to.getParentFile();
+        parent.mkdirs();
+        try (FileOutputStream out = new FileOutputStream(to)) {
+            out.write(from, 0, lenFrom);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "error while copying", e);
+            lastLocalizedMessage = e.getLocalizedMessage();
+            return false;
+        }
+        return lenFrom == to.length();
+    }
 }
