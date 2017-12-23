@@ -24,7 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * This class calculates md5 hashes.
+ * This class calculates md5 hashes of files.
  *
  * @author Thomas Kuenneth
  */
@@ -39,6 +39,7 @@ public class MD5 {
     private final StringBuilder sb;
 
     private boolean atomic;
+    private int lengthOfFile;
 
     public MD5() {
         this(64 * 1024 * 1024);
@@ -48,6 +49,7 @@ public class MD5 {
         buffer = new byte[len];
         buflen = len;
         atomic = false;
+        lengthOfFile = 0;
         MessageDigest _md = null;
         try {
             _md = MessageDigest.getInstance("MD5");
@@ -56,6 +58,15 @@ public class MD5 {
         }
         md = _md;
         sb = new StringBuilder();
+    }
+
+    /**
+     * Returns the length of the last hashed file.
+     *
+     * @return length of the last hashed file
+     */
+    public int getLengthOfFile() {
+        return lengthOfFile;
     }
 
     /**
@@ -68,7 +79,8 @@ public class MD5 {
     }
 
     /**
-     * Returns the buffer the file was read into
+     * Returns the buffer the file was read into. Should be used only if
+     * isAtomic() returns true.
      *
      * @return the buffer the file was read into
      */
@@ -76,32 +88,40 @@ public class MD5 {
         return buffer;
     }
 
+    /**
+     * Returns the md5 hash of a file.
+     *
+     * @param file file to be hashed
+     * @return the md5 hash of a file
+     */
     public synchronized String getChecksum(File file) {
         String result = null;
         atomic = false;
+        md.reset();
         if (file.isFile()) {
-            int filelen = (int) file.length();
-            int read = 0;
-            int num;
+            lengthOfFile = (int) file.length();
+            int alreadyRead = 0;
+            int bytesToRead;
             boolean first = true;
             try (FileInputStream fis = new FileInputStream(file)) {
-                while ((num = (filelen - read)) > 0) {
-                    if (num > buflen) {
-                        num = buflen;
+                while ((bytesToRead = (lengthOfFile - alreadyRead)) > 0) {
+                    if (bytesToRead > buflen) {
+                        bytesToRead = buflen;
                     }
-                    num = fis.read(buffer, 0, num);
+                    bytesToRead = fis.read(buffer, 0, bytesToRead);
                     if (first) {
                         first = false;
-                        atomic = (num == filelen) && (filelen <= buflen);
+                        atomic = (bytesToRead == lengthOfFile) && (lengthOfFile <= buflen);
                     }
-                    md.update(buffer, 0, num);
-                    read += num;
+                    md.update(buffer, 0, bytesToRead);
+                    alreadyRead += bytesToRead;
                 }
                 result = convertDigestToString(md.digest());
             } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, e.getLocalizedMessage());
-                md.reset();
+                LOGGER.log(Level.SEVERE, "getChecksum()", e);
             }
+        } else {
+            lengthOfFile = 0;
         }
         return result;
     }

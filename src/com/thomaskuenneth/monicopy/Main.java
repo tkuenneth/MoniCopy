@@ -168,20 +168,24 @@ public class Main extends Application {
                         }
                     }
                 }
-                final File _f = fileToCopy;
                 File destination = new File(to,
                         fileToCopy.getAbsolutePath().substring(offset));
                 if (mustBeCopied(fileToCopy, destination)) {
                     boolean ok;
-                    if (mdFrom.isAtomic()) {
+                    boolean atomic = mdFrom.isAtomic();
+                    LOGGER.log(Level.INFO,
+                            String.format("copying %s (atomic is b",
+                                    fileToCopy.getAbsolutePath(), atomic));
+                    if (atomic) {
                         ok = copier.copy(mdFrom.getBuffer(),
-                                (int) fileToCopy.length(), destination);
+                                mdFrom.getLengthOfFile(),
+                                destination);
                     } else {
                         ok = copier.copy(fileToCopy, destination);
                     }
                     if (!ok) {
                         String msg = String.format(getString("could_not_copy"),
-                                _f.getAbsolutePath(),
+                                fileToCopy.getAbsolutePath(),
                                 copier.getLastLocalizedMessage());
                         message(msg);
                     }
@@ -256,11 +260,15 @@ public class Main extends Application {
 
     private synchronized boolean mustBeCopied(File fileToCopy, File destination) {
         if (!destination.exists()) {
+            LOGGER.log(Level.INFO, String.format("%s not found in destination",
+                    fileToCopy.getAbsolutePath()));
             return true;
         }
         long lenFileToCopy = fileToCopy.length();
         long lenDestination = destination.length();
         if (lenFileToCopy != lenDestination) {
+            LOGGER.log(Level.INFO, String.format("%s has different size in destination",
+                    fileToCopy.getAbsolutePath()));
             return true;
         }
         Thread tFrom = new Thread(() -> {
@@ -281,6 +289,10 @@ public class Main extends Application {
             return true;
         }
         boolean copy = !sbFrom.toString().equals(sbTo.toString());
+        if (!copy) {
+            LOGGER.log(Level.INFO, String.format("%s found in destination with equal hash",
+                    fileToCopy.getAbsolutePath()));
+        }
         return copy;
     }
 
