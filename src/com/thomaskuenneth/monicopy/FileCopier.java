@@ -37,7 +37,7 @@ public class FileCopier {
     private String lastLocalizedMessage = null;
 
     public FileCopier() {
-        this(32 * 1024);
+        this(64 * 1024 * 1024);
     }
 
     public FileCopier(int bufsize) {
