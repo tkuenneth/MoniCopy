@@ -56,11 +56,11 @@ public class Main extends Application {
     private final FileCopier copier = new FileCopier();
     private final FileStore store = new FileStore();
 
-    private final MD5 md1 = new MD5();
-    private final StringBuilder sb1 = new StringBuilder();
+    private final MD5 mdFrom = new MD5();
+    private final StringBuilder sbFrom = new StringBuilder();
 
-    private final MD5 md2 = new MD5();
-    private final StringBuilder sb2 = new StringBuilder();
+    private final MD5 mdTo = new MD5();
+    private final StringBuilder sbTo = new StringBuilder();
 
     private final Preferences prefs = Preferences.userNodeForPackage(Main.class);
 
@@ -173,8 +173,8 @@ public class Main extends Application {
                         fileToCopy.getAbsolutePath().substring(offset));
                 if (mustBeCopied(fileToCopy, destination)) {
                     boolean ok;
-                    if (md1.isAtomic()) {
-                        ok = copier.copy(md1.getBuffer(),
+                    if (mdFrom.isAtomic()) {
+                        ok = copier.copy(mdFrom.getBuffer(),
                                 (int) fileToCopy.length(), destination);
                     } else {
                         ok = copier.copy(fileToCopy, destination);
@@ -263,24 +263,24 @@ public class Main extends Application {
         if (lenFileToCopy != lenDestination) {
             return true;
         }
-        Thread t1 = new Thread(() -> {
-            sb1.setLength(0);
-            sb1.append(md1.getChecksum(fileToCopy));
+        Thread tFrom = new Thread(() -> {
+            sbFrom.setLength(0);
+            sbFrom.append(mdFrom.getChecksum(fileToCopy));
         });
-        Thread t2 = new Thread(() -> {
-            sb2.setLength(0);
-            sb2.append(md2.getChecksum(destination));
+        Thread tTo = new Thread(() -> {
+            sbTo.setLength(0);
+            sbTo.append(mdTo.getChecksum(destination));
         });
-        t1.start();
-        t2.start();
+        tFrom.start();
+        tTo.start();
         try {
-            t1.join();
-            t2.join();
+            tFrom.join();
+            tTo.join();
         } catch (InterruptedException e) {
             LOGGER.log(Level.SEVERE, "interruption while joining threads", e);
             return true;
         }
-        boolean copy = !sb1.toString().equals(sb2.toString());
+        boolean copy = !sbFrom.toString().equals(sbTo.toString());
         return copy;
     }
 
