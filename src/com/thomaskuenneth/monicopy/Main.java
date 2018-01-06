@@ -273,8 +273,8 @@ public class Main extends Application {
                 if (!sourceFile.exists()) {
                     boolean deleted = fileToDelete.delete();
                     if (!deleted) {
-                        LOGGER.log(Level.SEVERE, "Could not delete {0}",
-                                new Object[]{filename});
+                        message(String.format(getString("could_not_delete"),
+                                filename, sourceFile.getAbsolutePath()));
                     }
                 }
             }
