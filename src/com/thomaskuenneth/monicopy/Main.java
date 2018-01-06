@@ -113,19 +113,20 @@ public class Main extends Application {
                 setPreferencesFromFile(fileTo, KEY_FILE_TO);
             }
         });
-        t4.setPadding(new Insets(0, 0, 20, 0));
 
         cbDelOrphanedFiles = createAndConfigureCheckBox();
         button = createAndConfigureButton();
 
-        VBox center = new VBox(t1, t2, t3, t4, cbDelOrphanedFiles);
+        VBox texts = new VBox(t1, t2, t3, t4);
+        texts.setPadding(new Insets(0, 0, 20, 0));
+        VBox center = new VBox(texts, cbDelOrphanedFiles);
         HBox bottom = new HBox(button);
         BorderPane.setMargin(bottom, new Insets(20, 0, 0, 0));
         bottom.setAlignment(Pos.CENTER);
         root = new BorderPane(center);
         root.setPadding(new Insets(20, 20, 20, 20));
         root.setBottom(bottom);
-        Scene scene = new Scene(root);
+        Scene scene = new Scene(root, 400, 300);
         primaryStage.setTitle(getString("title"));
         primaryStage.setScene(scene);
         primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("app.png")));
