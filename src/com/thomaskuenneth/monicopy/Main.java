@@ -235,7 +235,11 @@ public class Main extends Application {
     private void deleteOrphanedFiles(File _from, File _to) {
         final File from = _to;
         final File to = _from;
-        // FIXME: check if store is not empty
+        if (!store.isEmpty()) {
+            LOGGER.log(Level.SEVERE, "file store not empty");
+            nextStep();
+            return;
+        }
         Thread t = new Thread(() -> {
             int offset = from.getAbsolutePath().length() + 1;
             store.fill(from);
@@ -257,12 +261,14 @@ public class Main extends Application {
                         }
                     }
                 }
+                final String filename = fileToDelete.getAbsolutePath();
                 File sourceFile = new File(to,
-                        fileToDelete.getAbsolutePath().substring(offset));
+                        filename.substring(offset));
                 if (!sourceFile.exists()) {
                     boolean deleted = fileToDelete.delete();
                     if (!deleted) {
-                        // TODO: message
+                        LOGGER.log(Level.SEVERE, "Could not delete {0}",
+                                new Object[]{filename});
                     }
                 }
             }

@@ -43,6 +43,10 @@ public class FileStore {
         filler = null;
     }
 
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+
     public boolean isFilling() {
         return filler != null;
     }
