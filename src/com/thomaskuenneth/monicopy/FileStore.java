@@ -69,7 +69,7 @@ public class FileStore {
             return;
         }
         if (file.isDirectory()) {
-            LOGGER.log(Level.INFO, String.format("filling from %s",
+            LOGGER.log(Level.FINE, String.format("filling from %s",
                     file.getAbsolutePath()));
             File[] files = file.listFiles();
             if (files == null) {
