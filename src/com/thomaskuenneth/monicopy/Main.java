@@ -242,7 +242,7 @@ public class Main extends Application {
             return;
         }
         Thread t = new Thread(() -> {
-            int offset = from.getAbsolutePath().length() + 1;
+            int offset = from.getAbsolutePath().length();
             store.fill(from);
             File fileToDelete;
             message(getString("started_deleting"));
@@ -264,8 +264,12 @@ public class Main extends Application {
                     }
                 }
                 final String filename = fileToDelete.getAbsolutePath();
+                if (filename.charAt(offset) == File.separatorChar) {
+                    offset += 1;
+                }
+                String name = filename.substring(offset);
                 File sourceFile = new File(to,
-                        filename.substring(offset));
+                        name);
                 if (!sourceFile.exists()) {
                     boolean deleted = fileToDelete.delete();
                     if (!deleted) {
