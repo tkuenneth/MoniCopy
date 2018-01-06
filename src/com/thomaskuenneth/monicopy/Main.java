@@ -222,17 +222,65 @@ public class Main extends Application {
                     }
                 }
             }
-            message(getString("done"));
+            message(getString("finished_copying"));
+            nextStep();
+        });
+        t.start();
+    }
+
+    private void deleteOrphanedFiles(File _from, File _to) {
+        final File from = _to;
+        final File to = _from;
+        // FIXME: check if store is not empty
+        Thread t = new Thread(() -> {
+            int offset = from.getAbsolutePath().length() + 1;
+            store.fill(from);
+            File fileToDelete;
+            while (((fileToDelete = store.poll()) != null)
+                    || (store.isFilling())) {
+                if (fileToDelete == null) {
+                    continue;
+                }
+                synchronized (lock) {
+                    if (state == STATE.COPY_PAUSED) {
+                        try {
+                            LOGGER.log(Level.INFO, "pausing");
+                            lock.wait();
+                        } catch (InterruptedException ex) {
+                            LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
+                        } finally {
+                            LOGGER.log(Level.INFO, "resuming");
+                        }
+                    }
+                }
+                File sourceFile = new File(to,
+                        fileToDelete.getAbsolutePath().substring(offset));
+                if (!sourceFile.exists()) {
+                    boolean deleted = fileToDelete.delete();
+                    if (!deleted) {
+                        // TODO: message
+                    }
+                }
+            }
+            message(getString("finished_deleting"));
             nextStep();
         });
         t.start();
     }
 
     private void nextStep() {
-        if (cbDelOrphanedFiles.isSelected()) {
-            state = STATE.DELETING;
-        } else {
-            state = STATE.FINISHED;
+        switch (state) {
+            case COPYING:
+                if (cbDelOrphanedFiles.isSelected()) {
+                    state = STATE.DELETING;
+                    deleteOrphanedFiles(fileFrom, fileTo);
+                } else {
+                    state = STATE.FINISHED;
+                }
+                break;
+            case DELETING:
+                state = STATE.FINISHED;
+                break;
         }
         updateCopyButton();
     }
