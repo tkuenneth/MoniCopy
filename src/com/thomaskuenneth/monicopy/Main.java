@@ -186,6 +186,7 @@ public class Main extends Application {
             int offset = from.getAbsolutePath().length() + 1;
             store.fill(from);
             File fileToCopy;
+            message(getString("started_copying"));
             while (((fileToCopy = store.poll()) != null)
                     || (store.isFilling())) {
                 if (fileToCopy == null) {
@@ -244,6 +245,7 @@ public class Main extends Application {
             int offset = from.getAbsolutePath().length() + 1;
             store.fill(from);
             File fileToDelete;
+            message(getString("started_deleting"));
             while (((fileToDelete = store.poll()) != null)
                     || (store.isFilling())) {
                 if (fileToDelete == null) {
