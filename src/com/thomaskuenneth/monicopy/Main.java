@@ -50,7 +50,7 @@ public class Main extends Application {
     private static final String EMPTY_STRING = "";
 
     private enum STATE {
-        IDLE, COPYING, PAUSED, FINISHED
+        IDLE, COPYING, COPY_PAUSED, DELETING, DELETE_PAUSED, FINISHED
     }
     private STATE state;
 
@@ -118,10 +118,19 @@ public class Main extends Application {
                     copy(fileFrom, fileTo);
                     break;
                 case COPYING:
-                    state = STATE.PAUSED;
+                    state = STATE.COPY_PAUSED;
                     break;
-                case PAUSED:
+                case DELETING:
+                    state = STATE.DELETE_PAUSED;
+                    break;
+                case COPY_PAUSED:
                     state = STATE.COPYING;
+                    synchronized (lock) {
+                        lock.notifyAll();
+                    }
+                    break;
+                case DELETE_PAUSED:
+                    state = STATE.DELETING;
                     synchronized (lock) {
                         lock.notifyAll();
                     }
@@ -159,7 +168,7 @@ public class Main extends Application {
                     continue;
                 }
                 synchronized (lock) {
-                    if (state == STATE.PAUSED) {
+                    if (state == STATE.COPY_PAUSED) {
                         try {
                             LOGGER.log(Level.INFO, "pausing");
                             lock.wait();
@@ -250,7 +259,7 @@ public class Main extends Application {
                 case COPYING:
                     button.setText(getString("pause"));
                     break;
-                case PAUSED:
+                case COPY_PAUSED:
                     button.setText(getString("continue"));
                     break;
                 case FINISHED:
