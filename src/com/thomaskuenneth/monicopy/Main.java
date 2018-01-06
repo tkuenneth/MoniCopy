@@ -78,6 +78,7 @@ public class Main extends Application {
     private Button button = null;
     private TextArea ta = null;
     private BorderPane root = null;
+    private CheckBox cbDelOrphanedFiles = null;
 
     @Override
     public void start(Stage primaryStage) {
@@ -111,7 +112,7 @@ public class Main extends Application {
         });
         t4.setPadding(new Insets(0, 0, 20, 0));
 
-        CheckBox cbDelOrphanedFiles = createAndConfigureCheckBox();
+        cbDelOrphanedFiles = createAndConfigureCheckBox();
         button = createAndConfigureButton();
 
         VBox center = new VBox(t1, t2, t3, t4, cbDelOrphanedFiles);
@@ -222,10 +223,18 @@ public class Main extends Application {
                 }
             }
             message(getString("done"));
-            state = STATE.FINISHED;
-            updateCopyButton();
+            nextStep();
         });
         t.start();
+    }
+
+    private void nextStep() {
+        if (cbDelOrphanedFiles.isSelected()) {
+            state = STATE.DELETING;
+        } else {
+            state = STATE.FINISHED;
+        }
+        updateCopyButton();
     }
 
     private void message(String msg) {
@@ -259,6 +268,11 @@ public class Main extends Application {
     private File selectDir(File current, String title) {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle(title);
+        if (current != null) {
+            if (!current.exists() || !current.isDirectory()) {
+                current = null;
+            }
+        }
         chooser.setInitialDirectory(current);
         File selectedDirectory = chooser.showDialog(primaryStage);
         return selectedDirectory;
@@ -276,14 +290,18 @@ public class Main extends Application {
                     button.setText(getString("start"));
                     break;
                 case COPYING:
+                case DELETING:
                     button.setText(getString("pause"));
                     break;
                 case COPY_PAUSED:
+                case DELETE_PAUSED:
                     button.setText(getString("continue"));
                     break;
                 case FINISHED:
                     button.setText(getString("close"));
                     break;
+                default:
+                    throw new IllegalStateException("unhandled state: " + state);
             }
         });
     }
