@@ -27,6 +27,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
@@ -47,6 +48,7 @@ public class Main extends Application {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
+    private static final String KEY_DELETE_ORPHANED_FILES = "deleteOrphanedFiles";
     private static final String EMPTY_STRING = "";
 
     private enum STATE {
@@ -107,6 +109,12 @@ public class Main extends Application {
                 setPreferencesFromFile(fileTo, KEY_FILE_TO);
             }
         });
+        t4.setPadding(new Insets(0, 0, 20, 0));
+        CheckBox cbDelOrphanedFiles = new CheckBox(getString("delete_orphaned_files"));
+        cbDelOrphanedFiles.setSelected(prefs.getBoolean(KEY_DELETE_ORPHANED_FILES, false));
+        cbDelOrphanedFiles.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            prefs.putBoolean(KEY_DELETE_ORPHANED_FILES, newVal);
+        });
         button = new Button();
         button.setOnAction((ActionEvent event) -> {
             switch (state) {
@@ -143,7 +151,7 @@ public class Main extends Application {
         });
         updateCopyButton();
 
-        VBox center = new VBox(t1, t2, t3, t4);
+        VBox center = new VBox(t1, t2, t3, t4, cbDelOrphanedFiles);
         HBox bottom = new HBox(button);
         BorderPane.setMargin(bottom, new Insets(20, 0, 0, 0));
         bottom.setAlignment(Pos.CENTER);
