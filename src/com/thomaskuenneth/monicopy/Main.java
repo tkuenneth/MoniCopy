@@ -16,6 +16,8 @@
 package com.thomaskuenneth.monicopy;
 
 import java.io.File;
+import java.text.DateFormat;
+import java.util.Date;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,6 +52,7 @@ public class Main extends Application {
     private static final String KEY_FILE_TO = "fileTo";
     private static final String KEY_DELETE_ORPHANED_FILES = "deleteOrphanedFiles";
     private static final String EMPTY_STRING = "";
+    private static final DateFormat TIME_FORMAT = DateFormat.getTimeInstance();
 
     private enum STATE {
         IDLE, COPYING, COPY_PAUSED, DELETING, DELETE_PAUSED, FINISHED
@@ -288,7 +291,8 @@ public class Main extends Application {
     private void message(String msg) {
         LOGGER.log(Level.INFO, msg);
         Platform.runLater(() -> {
-            ta.appendText(msg);
+            String time = TIME_FORMAT.format(new Date());
+            ta.appendText(String.format(getString("message_template"), time, msg));
         });
     }
 
