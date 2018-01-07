@@ -89,6 +89,15 @@ public class MD5 {
     }
 
     /**
+     * Reset all values.
+     */
+    public void reset() {
+        atomic = false;
+        lengthOfFile = 0;
+        md.reset();
+    }
+
+    /**
      * Returns the md5 hash of a file.
      *
      * @param file file to be hashed
@@ -96,8 +105,7 @@ public class MD5 {
      */
     public synchronized String getChecksum(File file) {
         String result = null;
-        atomic = false;
-        md.reset();
+        reset();
         if (file.isFile()) {
             lengthOfFile = (int) file.length();
             int alreadyRead = 0;

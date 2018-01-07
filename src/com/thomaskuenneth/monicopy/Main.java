@@ -210,7 +210,7 @@ public class Main extends Application {
                     boolean ok;
                     boolean atomic = mdFrom.isAtomic();
                     LOGGER.log(Level.INFO,
-                            String.format("copying %s (atomic is b",
+                            String.format("copying %s (atomic is %b)",
                                     fileToCopy.getAbsolutePath(), atomic));
                     if (atomic) {
                         ok = copier.copy(mdFrom.getBuffer(),
@@ -372,6 +372,7 @@ public class Main extends Application {
     }
 
     private synchronized boolean mustBeCopied(File fileToCopy, File destination) {
+        mdFrom.reset();
         if (!destination.exists()) {
             LOGGER.log(Level.INFO, String.format("%s not found in destination",
                     fileToCopy.getAbsolutePath()));
