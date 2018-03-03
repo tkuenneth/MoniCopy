@@ -214,11 +214,11 @@ public class Main extends Application {
                         fileToCopy.getAbsolutePath().substring(offset));
                 if (mustBeCopied(fileToCopy, destination)) {
                     boolean ok;
-                    boolean atomic = mdFrom.isAtomic();
+                    boolean readFromBuffer = mdFrom.canReadFromBuffer();
                     LOGGER.log(Level.INFO,
-                            String.format("copying %s (atomic is %b)",
-                                    fileToCopy.getAbsolutePath(), atomic));
-                    if (atomic) {
+                            String.format("copying %s (readFromBuffer is %b)",
+                                    fileToCopy.getAbsolutePath(), readFromBuffer));
+                    if (readFromBuffer) {
                         ok = copier.copy(mdFrom.getBuffer(),
                                 mdFrom.getLengthOfFile(),
                                 destination);

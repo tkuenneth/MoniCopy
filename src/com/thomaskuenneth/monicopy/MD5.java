@@ -38,7 +38,7 @@ public class MD5 {
     private final MessageDigest md;
     private final StringBuilder sb;
 
-    private boolean atomic;
+    private boolean readFromBuffer;
     private int lengthOfFile;
 
     public MD5() {
@@ -48,7 +48,7 @@ public class MD5 {
     public MD5(int len) {
         buffer = new byte[len];
         buflen = len;
-        atomic = false;
+        readFromBuffer = false;
         lengthOfFile = 0;
         MessageDigest _md = null;
         try {
@@ -70,17 +70,17 @@ public class MD5 {
     }
 
     /**
-     * Returns true if the file could be read completely into the buffer.
+     * Returns true if the file can be read completely from the buffer.
      *
-     * @return true if the file could be read completely into the buffer
+     * @return true if the file can be read completely from the buffer
      */
-    public boolean isAtomic() {
-        return atomic;
+    public boolean canReadFromBuffer() {
+        return readFromBuffer;
     }
 
     /**
      * Returns the buffer the file was read into. Should be used only if
-     * isAtomic() returns true.
+ canReadFromBuffer() returns true.
      *
      * @return the buffer the file was read into
      */
@@ -92,7 +92,7 @@ public class MD5 {
      * Reset all values.
      */
     public void reset() {
-        atomic = false;
+        readFromBuffer = false;
         lengthOfFile = 0;
         md.reset();
     }
@@ -119,7 +119,7 @@ public class MD5 {
                     bytesToRead = fis.read(buffer, 0, bytesToRead);
                     if (first) {
                         first = false;
-                        atomic = (bytesToRead == lengthOfFile) && (lengthOfFile <= buflen);
+                        readFromBuffer = (bytesToRead == lengthOfFile) && (lengthOfFile <= buflen);
                     }
                     md.update(buffer, 0, bytesToRead);
                     alreadyRead += bytesToRead;
