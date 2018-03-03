@@ -36,6 +36,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -51,6 +52,7 @@ public class Main extends Application {
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
     private static final String KEY_DELETE_ORPHANED_FILES = "deleteOrphanedFiles";
+    private static final String KEY_NO_OVERLAP = "no_overlap";
     private static final String EMPTY_STRING = "";
     private static final DateFormat TIME_FORMAT = DateFormat.getTimeInstance();
 
@@ -82,6 +84,7 @@ public class Main extends Application {
     private TextArea ta = null;
     private BorderPane root = null;
     private CheckBox cbDelOrphanedFiles = null;
+    private Text warning = null;
 
     @Override
     public void start(Stage primaryStage) {
@@ -117,8 +120,11 @@ public class Main extends Application {
         cbDelOrphanedFiles = createAndConfigureCheckBox();
         button = createAndConfigureButton();
 
-        VBox texts = new VBox(t1, t2, t3, t4);
+        warning = new Text(EMPTY_STRING);
+        warning.setFill(Color.RED);
+        VBox texts = new VBox(t1, t2, t3, t4, warning);
         texts.setPadding(new Insets(0, 0, 20, 0));
+
         VBox center = new VBox(texts, cbDelOrphanedFiles);
         HBox bottom = new HBox(button);
         BorderPane.setMargin(bottom, new Insets(20, 0, 0, 0));
@@ -349,7 +355,16 @@ public class Main extends Application {
 
     private void updateCopyButton() {
         Platform.runLater(() -> {
-            button.setDisable(fileFrom == null || fileTo == null);
+            boolean disable = fileFrom == null || fileTo == null;
+            String strWarning = "";
+            if (!disable) {
+                disable = fileTo.getAbsolutePath().contains(fileFrom.getAbsolutePath());
+                if (disable) {
+                    strWarning = getString(KEY_NO_OVERLAP);
+                }
+            }
+            warning.setText(strWarning);
+            button.setDisable(disable);
             switch (state) {
                 case IDLE:
                     button.setText(getString("start"));
