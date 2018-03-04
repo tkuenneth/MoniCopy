@@ -230,6 +230,8 @@ public class Main extends Application {
                                 fileToCopy.getAbsolutePath(),
                                 copier.getLastLocalizedMessage());
                         message(msg);
+                    } else {
+                        destination.setLastModified(fileToCopy.lastModified());
                     }
                 }
             }
@@ -387,19 +389,31 @@ public class Main extends Application {
     }
 
     private synchronized boolean mustBeCopied(File fileToCopy, File destination) {
+        LOGGER.log(Level.INFO,
+                String.format("preparing to copy %s",
+                        fileToCopy.getAbsolutePath()));
         mdFrom.reset();
         if (!destination.exists()) {
-            LOGGER.log(Level.INFO, String.format("%s not found in destination",
-                    fileToCopy.getAbsolutePath()));
+            LOGGER.log(Level.INFO,
+                    String.format("not found in destination"));
             return true;
         }
         long lenFileToCopy = fileToCopy.length();
         long lenDestination = destination.length();
         if (lenFileToCopy != lenDestination) {
-            LOGGER.log(Level.INFO, String.format("%s has different size in destination",
-                    fileToCopy.getAbsolutePath()));
+            LOGGER.log(Level.INFO,
+                    String.format("different size in destination: %d != %d",
+                            lenFileToCopy, lenDestination));
             return true;
         }
+        long lastModifiedfileToCopy = fileToCopy.lastModified();
+        long lastModifieddestination = destination.lastModified();
+        if (lastModifiedfileToCopy == lastModifieddestination) {
+            return false;
+        }
+        LOGGER.log(Level.INFO,
+                String.format("different modification date: %tc != %tc",
+                        lastModifiedfileToCopy, lastModifieddestination));
         Thread tFrom = new Thread(() -> {
             sbFrom.setLength(0);
             sbFrom.append(mdFrom.getChecksum(fileToCopy));
@@ -417,10 +431,14 @@ public class Main extends Application {
             LOGGER.log(Level.SEVERE, "interruption while joining threads", e);
             return true;
         }
-        boolean copy = !sbFrom.toString().equals(sbTo.toString());
-        if (!copy) {
-            LOGGER.log(Level.INFO, String.format("%s found in destination with equal hash",
-                    fileToCopy.getAbsolutePath()));
+        String strSbFrom = sbFrom.toString();
+        String strSbTo = sbTo.toString();
+        boolean copy = !strSbFrom.equals(strSbTo);
+        if (copy) {
+            LOGGER.log(Level.INFO, String.format("different md5 hashes: %s != %s",
+                    strSbFrom, strSbTo));
+        } else {
+            LOGGER.log(Level.INFO, "no need to copy");
         }
         return copy;
     }
