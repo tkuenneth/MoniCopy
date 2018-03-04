@@ -49,10 +49,10 @@ public class FileCopier {
     }
 
     public synchronized boolean copy(File from, File to) {
-        int lenFrom = (int) from.length();
-        int read = 0;
-        int num;
-        int buflen = buffer.length;
+        long lenFrom = from.length();
+        long read = 0;
+        long num;
+        long buflen = buffer.length;
         File parent = to.getParentFile();
         parent.mkdirs();
         try (FileInputStream in = new FileInputStream(from);
@@ -61,8 +61,8 @@ public class FileCopier {
                 if (num > buflen) {
                     num = buflen;
                 }
-                num = in.read(buffer, 0, num);
-                out.write(buffer, 0, num);
+                num = in.read(buffer, 0, (int) num);
+                out.write(buffer, 0, (int) num);
                 read += num;
             }
         } catch (IOException e) {
