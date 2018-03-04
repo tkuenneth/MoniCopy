@@ -233,6 +233,8 @@ public class Main extends Application {
                     } else {
                         destination.setLastModified(fileToCopy.lastModified());
                     }
+                } else {
+                    LOGGER.log(Level.INFO, "no need to copy");
                 }
             }
             message(getString("finished_copying"));
@@ -438,7 +440,7 @@ public class Main extends Application {
             LOGGER.log(Level.INFO, String.format("different md5 hashes: %s != %s",
                     strSbFrom, strSbTo));
         } else {
-            LOGGER.log(Level.INFO, "no need to copy");
+            destination.setLastModified(fileToCopy.lastModified());
         }
         return copy;
     }
