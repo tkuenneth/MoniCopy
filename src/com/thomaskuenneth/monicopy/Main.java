@@ -49,6 +49,8 @@ import javafx.stage.Stage;
 public class Main extends Application {
 
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    private static final String KEY_CANNOT_READ = "cannot_read";
+    private static final String KEY_CANNOT_WRITE = "cannot_write";
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
     private static final String KEY_DELETE_ORPHANED_FILES = "deleteOrphanedFiles";
@@ -362,9 +364,19 @@ public class Main extends Application {
             boolean disable = fileFrom == null || fileTo == null;
             String strWarning = "";
             if (!disable) {
-                disable = fileTo.getAbsolutePath().contains(fileFrom.getAbsolutePath());
-                if (disable) {
-                    strWarning = getString(KEY_NO_OVERLAP);
+                fileFrom.mkdirs();
+                fileTo.mkdirs();
+                if (!fileFrom.canRead()) {
+                    strWarning = getString(KEY_CANNOT_READ);
+                    disable = true;
+                } else if (!fileTo.canWrite()) {
+                    strWarning = getString(KEY_CANNOT_WRITE);
+                    disable = true;
+                } else {
+                    disable = fileTo.getAbsolutePath().contains(fileFrom.getAbsolutePath());
+                    if (disable) {
+                        strWarning = getString(KEY_NO_OVERLAP);
+                    }
                 }
             }
             warning.setText(strWarning);
