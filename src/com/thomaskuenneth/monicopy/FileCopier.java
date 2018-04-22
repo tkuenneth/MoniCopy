@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Thomas Kuenneth
+ * Copyright 2017 - 2018 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,7 @@ import java.util.logging.Logger;
  */
 public class FileCopier {
 
-    private static final Logger LOGGER
-            = Logger.getLogger(FileCopier.class.getName());
+    private static final Logger LOGGER = Logger.getGlobal();
 
     private final byte[] buffer;
 

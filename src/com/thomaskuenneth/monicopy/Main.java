@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Thomas Kuenneth
+ * Copyright 2017 - 2018 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,14 @@
 package com.thomaskuenneth.monicopy;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.ResourceBundle;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.prefs.Preferences;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -48,7 +51,7 @@ import javafx.stage.Stage;
  */
 public class Main extends Application {
 
-    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    private static final Logger LOGGER = Logger.getGlobal();
     private static final String KEY_CANNOT_READ = "cannot_read";
     private static final String KEY_CANNOT_WRITE = "cannot_write";
     private static final String KEY_FILE_FROM = "fileFrom";
@@ -195,10 +198,19 @@ public class Main extends Application {
             store.fill(from);
             File fileToCopy;
             message(getString("started_copying"));
+            message(getString("find_files"));
+            boolean printedNumberOfFiles = false;
             while (((fileToCopy = store.poll()) != null)
                     || (store.isFilling())) {
                 if (fileToCopy == null) {
                     continue;
+                }
+                if (!printedNumberOfFiles && !store.isFilling()) {
+                    printedNumberOfFiles = true;
+                    message(String.format(getString("number_of_files_and_directories"),
+                            store.getNumberOfFiles(),
+                            // base directory should not be counted
+                            store.getNumberOfDirectories() - 1));
                 }
                 synchronized (lock) {
                     if (state == STATE.COPY_PAUSED) {
@@ -402,6 +414,20 @@ public class Main extends Application {
         });
     }
 
+    /**
+     * Checks if a file must be copied to the destination. This is the case if
+     * a) the file does not exist, b) the files have different lengths, c) have
+     * different last modified time stamps and different md5 hashes.
+     *
+     * Note: If both files exist, have the same length, have the same md5 hash
+     * but different last modified time stamps, the time stamp of the
+     * destination is set to the time stamp of the source, to prevent future md5
+     * hash checks if the file size remains the same.
+     *
+     * @param fileToCopy source file
+     * @param destination destination
+     * @return true if the file must be copied
+     */
     private synchronized boolean mustBeCopied(File fileToCopy, File destination) {
         LOGGER.log(Level.INFO,
                 String.format("preparing to copy %s",
@@ -458,9 +484,20 @@ public class Main extends Application {
     }
 
     /**
+     * App entry point.
+     *
      * @param args the command line arguments
      */
     public static void main(String[] args) {
+        try {
+            File f = new File(System.getProperty("user.home", "."), "MoniCopy.log");
+            FileHandler handler = new FileHandler(f.getAbsolutePath(), false);
+            SimpleFormatter formatter = new SimpleFormatter();
+            handler.setFormatter(formatter);
+            LOGGER.addHandler(handler);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Could not create file handler", e);
+        }
         launch(args);
     }
 }

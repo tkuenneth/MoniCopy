@@ -30,8 +30,7 @@ import java.util.logging.Logger;
  */
 public class MD5 {
 
-    private static final Logger LOGGER
-            = Logger.getLogger(MD5.class.getName());
+    private static final Logger LOGGER = Logger.getGlobal();
 
     private final int buflen;
     private final byte[] buffer;
@@ -80,7 +79,7 @@ public class MD5 {
 
     /**
      * Returns the buffer the file was read into. Should be used only if
- canReadFromBuffer() returns true.
+     * canReadFromBuffer() returns true.
      *
      * @return the buffer the file was read into
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Thomas Kuenneth
+ * Copyright 2017 - 2018 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,13 @@ import java.util.logging.Logger;
  */
 public class FileStore {
 
-    private static final Logger LOGGER
-            = Logger.getLogger(FileStore.class.getName());
+    private static final Logger LOGGER = Logger.getGlobal();
 
     private final ArrayBlockingQueue<File> queue;
 
     private Thread filler;
+    private long numberOfFiles;
+    private long numberOfDirectories;
 
     public FileStore() {
         this(1000);
@@ -41,6 +42,26 @@ public class FileStore {
     public FileStore(int size) {
         queue = new ArrayBlockingQueue<>(size);
         filler = null;
+        numberOfFiles = 0;
+        numberOfDirectories = 0;
+    }
+
+    /**
+     * Get the number of files.
+     *
+     * @return Get the number of files
+     */
+    public long getNumberOfFiles() {
+        return numberOfFiles;
+    }
+
+    /**
+     * Get the number of directories. The base directory is included.
+     *
+     * @return number of directories
+     */
+    public long getNumberOfDirectories() {
+        return numberOfDirectories;
     }
 
     public boolean isEmpty() {
@@ -69,6 +90,7 @@ public class FileStore {
             return;
         }
         if (file.isDirectory()) {
+            numberOfDirectories += 1;
             LOGGER.log(Level.FINE, String.format("filling from %s",
                     file.getAbsolutePath()));
             File[] files = file.listFiles();
@@ -80,6 +102,7 @@ public class FileStore {
                 }
             }
         } else if (file.isFile()) {
+            numberOfFiles += 1;
             try {
                 queue.put(file);
             } catch (InterruptedException ex) {
