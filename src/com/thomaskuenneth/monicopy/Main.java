@@ -19,7 +19,9 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.ResourceBundle;
+import java.util.TreeSet;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,7 +58,7 @@ public class Main extends Application {
     private static final String KEY_CANNOT_WRITE = "cannot_write";
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
-    private static final String KEY_DELETE_ORPHANED_FILES = "deleteOrphanedFiles";
+    private static final String DELETE_ORPHANS = "deleteOrphanedFiles";
     private static final String KEY_NO_OVERLAP = "no_overlap";
     private static final String EMPTY_STRING = "";
     private static final DateFormat TIME_FORMAT = DateFormat.getTimeInstance();
@@ -145,10 +147,10 @@ public class Main extends Application {
     }
 
     private CheckBox createAndConfigureCheckBox() {
-        CheckBox cb = new CheckBox(getString("delete_orphaned_files"));
-        cb.setSelected(prefs.getBoolean(KEY_DELETE_ORPHANED_FILES, false));
+        CheckBox cb = new CheckBox(getString(DELETE_ORPHANS));
+        cb.setSelected(prefs.getBoolean(DELETE_ORPHANS, false));
         cb.selectedProperty().addListener((obs, oldVal, newVal) -> {
-            prefs.putBoolean(KEY_DELETE_ORPHANED_FILES, newVal);
+            prefs.putBoolean(DELETE_ORPHANS, newVal);
         });
         return cb;
     }
@@ -257,7 +259,7 @@ public class Main extends Application {
         t.start();
     }
 
-    private void deleteOrphanedFiles(File _from, File _to) {
+    private void deleteOrphans(File _from, File _to) {
         final File from = _to;
         final File to = _from;
         if (!store.isEmpty()) {
@@ -270,35 +272,44 @@ public class Main extends Application {
             store.fill(from);
             File fileToDelete;
             message(getString("started_deleting"));
+            TreeSet<String> parents = new TreeSet<>();
             while (((fileToDelete = store.poll()) != null)
                     || (store.isFilling())) {
                 if (fileToDelete == null) {
                     continue;
                 }
-                synchronized (lock) {
-                    if (state == STATE.COPY_PAUSED) {
-                        try {
-                            LOGGER.log(Level.INFO, "pausing");
-                            lock.wait();
-                        } catch (InterruptedException ex) {
-                            LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
-                        } finally {
-                            LOGGER.log(Level.INFO, "resuming");
-                        }
-                    }
-                }
+                checkForPause();
                 final String filename = fileToDelete.getAbsolutePath();
                 if (filename.charAt(offset) == File.separatorChar) {
                     offset += 1;
                 }
                 String name = filename.substring(offset);
-                File sourceFile = new File(to,
-                        name);
+                File sourceFile = new File(to, name);
                 if (!sourceFile.exists()) {
+                    String parent = fileToDelete.getParent();
+                    parents.add(parent);
                     boolean deleted = fileToDelete.delete();
                     if (!deleted) {
                         message(String.format(getString("could_not_delete"),
                                 filename, sourceFile.getAbsolutePath()));
+                    }
+                }
+            }
+            Iterator<String> i = parents.descendingIterator();
+            while (i.hasNext()) {
+                checkForPause();
+                String parent = i.next();
+                File f = new File(parent);
+                if (!f.isDirectory()) {
+                    LOGGER.log(Level.SEVERE,
+                            String.format("%s is not a directory", parent));
+                }
+                if (f.list().length == 0) {
+                    LOGGER.log(Level.INFO,
+                            String.format("deleting directory %s", parent));
+                    boolean ok = f.delete();
+                    if (!ok) {
+                        message(String.format("could not delete %s", parent));
                     }
                 }
             }
@@ -313,7 +324,7 @@ public class Main extends Application {
             case COPYING:
                 if (cbDelOrphanedFiles.isSelected()) {
                     state = STATE.DELETING;
-                    deleteOrphanedFiles(fileFrom, fileTo);
+                    deleteOrphans(fileFrom, fileTo);
                 } else {
                     state = STATE.FINISHED;
                 }
@@ -323,6 +334,21 @@ public class Main extends Application {
                 break;
         }
         updateCopyButton();
+    }
+
+    private void checkForPause() {
+        synchronized (lock) {
+            if (state == STATE.COPY_PAUSED) {
+                try {
+                    LOGGER.log(Level.INFO, "pausing");
+                    lock.wait();
+                } catch (InterruptedException ex) {
+                    LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
+                } finally {
+                    LOGGER.log(Level.INFO, "resuming");
+                }
+            }
+        }
     }
 
     private void message(String msg) {
