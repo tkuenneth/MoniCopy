@@ -168,14 +168,14 @@ public class Main extends Application {
                 case COPYING:
                     state = STATE.COPY_PAUSED;
                     break;
-                case DELETING:
-                    state = STATE.DELETE_PAUSED;
-                    break;
                 case COPY_PAUSED:
                     state = STATE.COPYING;
                     synchronized (lock) {
                         lock.notifyAll();
                     }
+                    break;
+                case DELETING:
+                    state = STATE.DELETE_PAUSED;
                     break;
                 case DELETE_PAUSED:
                     state = STATE.DELETING;
@@ -213,18 +213,7 @@ public class Main extends Application {
                             // base directory should not be counted
                             store.getNumberOfDirectories() - 1));
                 }
-                synchronized (lock) {
-                    if (state == STATE.COPY_PAUSED) {
-                        try {
-                            LOGGER.log(Level.INFO, "pausing");
-                            lock.wait();
-                        } catch (InterruptedException ex) {
-                            LOGGER.log(Level.SEVERE, "interruption while waiting to resume", ex);
-                        } finally {
-                            LOGGER.log(Level.INFO, "resuming");
-                        }
-                    }
-                }
+                checkForPause();
                 File destination = new File(to,
                         fileToCopy.getAbsolutePath().substring(offset));
                 if (mustBeCopied(fileToCopy, destination)) {
@@ -342,7 +331,7 @@ public class Main extends Application {
 
     private void checkForPause() {
         synchronized (lock) {
-            if (state == STATE.COPY_PAUSED) {
+            if ((state == STATE.COPY_PAUSED) || (state == STATE.DELETE_PAUSED)) {
                 try {
                     LOGGER.log(Level.INFO, "pausing");
                     lock.wait();
