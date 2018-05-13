@@ -21,7 +21,6 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.ResourceBundle;
-import java.util.TreeSet;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -272,7 +271,6 @@ public class Main extends Application {
             store.fill(from);
             File fileToDelete;
             message(getString("started_deleting"));
-            TreeSet<String> parents = new TreeSet<>();
             while (((fileToDelete = store.poll()) != null)
                     || (store.isFilling())) {
                 if (fileToDelete == null) {
@@ -286,8 +284,6 @@ public class Main extends Application {
                 String name = filename.substring(offset);
                 File sourceFile = new File(to, name);
                 if (!sourceFile.exists()) {
-                    String parent = fileToDelete.getParent();
-                    parents.add(parent);
                     boolean deleted = fileToDelete.delete();
                     if (!deleted) {
                         message(String.format(getString("could_not_delete"),
@@ -295,28 +291,36 @@ public class Main extends Application {
                     }
                 }
             }
-            Iterator<String> i = parents.descendingIterator();
-            while (i.hasNext()) {
-                checkForPause();
-                String parent = i.next();
-                File f = new File(parent);
-                if (!f.isDirectory()) {
-                    LOGGER.log(Level.SEVERE,
-                            String.format("%s is not a directory", parent));
-                }
-                if (f.list().length == 0) {
-                    LOGGER.log(Level.INFO,
-                            String.format("deleting directory %s", parent));
-                    boolean ok = f.delete();
-                    if (!ok) {
-                        message(String.format("could not delete %s", parent));
-                    }
-                }
-            }
+            deleteOrphanedDirs(_to);
             message(getString("finished_deleting"));
             nextStep();
         });
         t.start();
+    }
+
+    private void deleteOrphanedDirs(File base) {
+        FolderMap folders = new FolderMap();
+        folders.fill(base);
+        Iterator<File> i = folders.getIterator();
+        while (i.hasNext()) {
+            checkForPause();
+            File f = i.next();
+            String absolutePath = f.getAbsolutePath();
+            if (!f.isDirectory()) {
+                LOGGER.log(Level.SEVERE,
+                        String.format("%s is not a directory", absolutePath));
+                continue;
+            }
+            String[] files = f.list();
+            if ((files != null) && (files.length == 0)) {
+                LOGGER.log(Level.INFO,
+                        String.format("deleting directory %s", absolutePath));
+                boolean ok = f.delete();
+                if (!ok) {
+                    message(String.format("could not delete %s", absolutePath));
+                }
+            }
+        }
     }
 
     private void nextStep() {
