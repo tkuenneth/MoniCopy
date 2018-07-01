@@ -206,10 +206,14 @@ public class Main extends Application implements Pausable {
             if (files == null) {
                 return;
             }
+            long numberOfFiles = store.getNumberOfFiles();
+            long numberOfProcessedFiles = 0;
+            float ratio = (float) 100 / (float) numberOfFiles;
             message(String.format(getString("number_of_files_and_directories"),
-                    store.getNumberOfFiles(),
+                    numberOfFiles,
                     // base directory should not be counted
                     store.getNumberOfDirectories() - 1));
+            int lastPrinted = -1;
             for (File fileToCopy : files) {
                 checkForPause();
                 File destination = new File(to,
@@ -237,6 +241,13 @@ public class Main extends Application implements Pausable {
                     }
                 } else {
                     LOGGER.log(Level.INFO, "no need to copy");
+                }
+                int percent = (int) (ratio * (float) ++numberOfProcessedFiles);
+                if ((percent % 10) == 0) {
+                    if (lastPrinted != percent) {
+                        message(String.format("%d percent done", percent));
+                        lastPrinted = percent;
+                    }
                 }
             }
             message(getString("finished_copying"));
