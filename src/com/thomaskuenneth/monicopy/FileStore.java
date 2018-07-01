@@ -30,11 +30,13 @@ public class FileStore {
 
     private static final Logger LOGGER = Logger.getGlobal();
 
+    private final Pausable callback;
     private final List<File> files;
 
     private long numberOfDirectories;
 
-    public FileStore() {
+    public FileStore(Pausable callback) {
+        this.callback = callback;
         files = new ArrayList<>(200000);
         numberOfDirectories = 0;
     }
@@ -61,6 +63,9 @@ public class FileStore {
         if (file == null) {
             LOGGER.log(Level.SEVERE, "called fill() with null file");
             return null;
+        }
+        if (callback != null) {
+            callback.checkForPause();
         }
         if (file.isDirectory()) {
             String absolutePath = file.getAbsolutePath();

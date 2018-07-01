@@ -51,7 +51,7 @@ import javafx.stage.Stage;
  *
  * @author Thomas Kuenneth
  */
-public class Main extends Application {
+public class Main extends Application implements Pausable {
 
     private static final Logger LOGGER = Logger.getGlobal();
     private static final String KEY_CANNOT_READ = "cannot_read";
@@ -201,7 +201,7 @@ public class Main extends Application {
             int offset = from.getAbsolutePath().length() + 1;
             message(getString("started_copying"));
             message(getString("find_files"));
-            FileStore store = new FileStore();
+            FileStore store = new FileStore(this);
             List<File> files = store.fill(from);
             if (files == null) {
                 return;
@@ -251,7 +251,7 @@ public class Main extends Application {
         Thread t = new Thread(() -> {
             int offset = from.getAbsolutePath().length();
             message(getString("started_deleting"));
-            FileStore store = new FileStore();
+            FileStore store = new FileStore(this);
             List<File> files = store.fill(from);
             if (files == null) {
                 return;
@@ -321,7 +321,8 @@ public class Main extends Application {
         updateCopyButton();
     }
 
-    private void checkForPause() {
+    @Override
+    public void checkForPause() {
         synchronized (lock) {
             if ((state == STATE.COPY_PAUSED) || (state == STATE.DELETE_PAUSED)) {
                 try {
