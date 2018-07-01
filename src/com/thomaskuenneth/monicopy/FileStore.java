@@ -16,12 +16,13 @@
 package com.thomaskuenneth.monicopy;
 
 import java.io.File;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * This class implements a queue with the files to be copied.
+ * This class implements a queue with the children to be copied.
  *
  * @author Thomas Kuenneth
  */
@@ -29,30 +30,22 @@ public class FileStore {
 
     private static final Logger LOGGER = Logger.getGlobal();
 
-    private final ArrayBlockingQueue<File> queue;
+    private final List<File> files;
 
-    private Thread filler;
-    private long numberOfFiles;
     private long numberOfDirectories;
 
     public FileStore() {
-        this(1000);
-    }
-
-    public FileStore(int size) {
-        queue = new ArrayBlockingQueue<>(size);
-        filler = null;
-        numberOfFiles = 0;
+        files = new ArrayList<>(200000);
         numberOfDirectories = 0;
     }
 
     /**
-     * Get the number of files.
+     * Get the number of children.
      *
-     * @return Get the number of files
+     * @return Get the number of children
      */
     public long getNumberOfFiles() {
-        return numberOfFiles;
+        return files.size();
     }
 
     /**
@@ -64,51 +57,28 @@ public class FileStore {
         return numberOfDirectories;
     }
 
-    public boolean isEmpty() {
-        return queue.isEmpty();
-    }
-
-    public boolean isFilling() {
-        return filler != null;
-    }
-
-    public File poll() {
-        return queue.poll();
-    }
-
-    public synchronized void fill(File baseDir) {
-        filler = new Thread(() -> {
-            _fill(baseDir);
-            filler = null;
-        });
-        filler.start();
-    }
-
-    private void _fill(File file) {
+    public synchronized List<File> fill(File file) {
         if (file == null) {
-            LOGGER.log(Level.SEVERE, "called _fill with null file");
-            return;
+            LOGGER.log(Level.SEVERE, "called fill() with null file");
+            return null;
         }
         if (file.isDirectory()) {
+            String absolutePath = file.getAbsolutePath();
             numberOfDirectories += 1;
             LOGGER.log(Level.FINE, String.format("filling from %s",
-                    file.getAbsolutePath()));
-            File[] files = file.listFiles();
-            if (files == null) {
-                LOGGER.log(Level.SEVERE, "listFiles() returned null");
+                    absolutePath));
+            File[] children = file.listFiles();
+            if (children == null) {
+                LOGGER.log(Level.SEVERE,
+                        String.format("listFiles(%s) returned null", absolutePath));
             } else {
-                for (File child : files) {
-                    _fill(child);
+                for (File child : children) {
+                    fill(child);
                 }
             }
         } else if (file.isFile()) {
-            numberOfFiles += 1;
-            try {
-                queue.put(file);
-            } catch (InterruptedException ex) {
-                LOGGER.log(Level.SEVERE, "interruption while waiting for put()",
-                        ex);
-            }
+            files.add(file);
         }
+        return files;
     }
 }

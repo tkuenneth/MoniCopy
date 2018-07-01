@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -68,7 +69,6 @@ public class Main extends Application {
     private STATE state;
 
     private final FileCopier copier = new FileCopier();
-    private final FileStore store = new FileStore();
 
     private final MD5 mdFrom = new MD5();
     private final StringBuilder sbFrom = new StringBuilder();
@@ -142,6 +142,9 @@ public class Main extends Application {
         primaryStage.setTitle(getString("title"));
         primaryStage.setScene(scene);
         primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("app.png")));
+        primaryStage.setOnCloseRequest((event) -> {
+            System.exit(0);
+        });
         primaryStage.show();
     }
 
@@ -196,23 +199,18 @@ public class Main extends Application {
     private void copy(File from, File to) {
         Thread t = new Thread(() -> {
             int offset = from.getAbsolutePath().length() + 1;
-            store.fill(from);
-            File fileToCopy;
             message(getString("started_copying"));
             message(getString("find_files"));
-            boolean printedNumberOfFiles = false;
-            while (((fileToCopy = store.poll()) != null)
-                    || (store.isFilling())) {
-                if (fileToCopy == null) {
-                    continue;
-                }
-                if (!printedNumberOfFiles && !store.isFilling()) {
-                    printedNumberOfFiles = true;
-                    message(String.format(getString("number_of_files_and_directories"),
-                            store.getNumberOfFiles(),
-                            // base directory should not be counted
-                            store.getNumberOfDirectories() - 1));
-                }
+            FileStore store = new FileStore();
+            List<File> files = store.fill(from);
+            if (files == null) {
+                return;
+            }
+            message(String.format(getString("number_of_files_and_directories"),
+                    store.getNumberOfFiles(),
+                    // base directory should not be counted
+                    store.getNumberOfDirectories() - 1));
+            for (File fileToCopy : files) {
                 checkForPause();
                 File destination = new File(to,
                         fileToCopy.getAbsolutePath().substring(offset));
@@ -250,21 +248,15 @@ public class Main extends Application {
     private void deleteOrphans(File _from, File _to) {
         final File from = _to;
         final File to = _from;
-        if (!store.isEmpty()) {
-            LOGGER.log(Level.SEVERE, "file store not empty");
-            nextStep();
-            return;
-        }
         Thread t = new Thread(() -> {
             int offset = from.getAbsolutePath().length();
-            store.fill(from);
-            File fileToDelete;
             message(getString("started_deleting"));
-            while (((fileToDelete = store.poll()) != null)
-                    || (store.isFilling())) {
-                if (fileToDelete == null) {
-                    continue;
-                }
+            FileStore store = new FileStore();
+            List<File> files = store.fill(from);
+            if (files == null) {
+                return;
+            }
+            for (File fileToDelete : files) {
                 checkForPause();
                 final String filename = fileToDelete.getAbsolutePath();
                 if (filename.charAt(offset) == File.separatorChar) {
