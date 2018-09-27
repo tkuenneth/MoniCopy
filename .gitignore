@@ -1,3 +1,5 @@
+nbproject/
+.DS_Store
 *.class
 *.log
 *.jar

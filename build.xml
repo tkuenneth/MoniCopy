@@ -10,6 +10,15 @@
 <project name="MoniCopy" default="default" basedir=".">
     <description>Builds, tests, and runs the project MoniCopy.</description>
     <import file="nbproject/build-impl.xml"/>
+    
+        <target name="-pre-init">
+        <condition property="deploy.icon.native" 
+                   value="./artwork/MoniCopy.ico" 
+                   else="./artwork/MoniCopy.icns">
+            <os family="windows" />
+        </condition>
+    </target>
+    
     <!--
 
     There exist several targets which are by default empty and which can be 
