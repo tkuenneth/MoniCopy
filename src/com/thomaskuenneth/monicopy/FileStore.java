@@ -16,6 +16,7 @@
 package com.thomaskuenneth.monicopy;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -82,7 +83,12 @@ public class FileStore {
                 }
             }
         } else if (file.isFile()) {
-            files.add(file);
+            if (!Files.isSymbolicLink(file.toPath())) {
+                files.add(file);
+            } else {
+                LOGGER.log(Level.SEVERE, "{0} is a symbolic link",
+                        new Object[]{file.getAbsolutePath()});
+            }
         }
         return files;
     }
