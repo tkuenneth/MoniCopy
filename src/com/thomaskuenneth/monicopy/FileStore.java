@@ -68,27 +68,27 @@ public class FileStore {
         if (callback != null) {
             callback.checkForPause();
         }
-        if (file.isDirectory()) {
-            String absolutePath = file.getAbsolutePath();
-            numberOfDirectories += 1;
-            LOGGER.log(Level.FINE, String.format("filling from %s",
-                    absolutePath));
-            File[] children = file.listFiles();
-            if (children == null) {
-                LOGGER.log(Level.SEVERE,
-                        String.format("listFiles(%s) returned null", absolutePath));
-            } else {
-                for (File child : children) {
-                    fill(child);
+        if (!Files.isSymbolicLink(file.toPath())) {
+            if (file.isDirectory()) {
+                String absolutePath = file.getAbsolutePath();
+                numberOfDirectories += 1;
+                LOGGER.log(Level.FINE, String.format("filling from %s",
+                        absolutePath));
+                File[] children = file.listFiles();
+                if (children == null) {
+                    LOGGER.log(Level.SEVERE,
+                            String.format("listFiles(%s) returned null", absolutePath));
+                } else {
+                    for (File child : children) {
+                        fill(child);
+                    }
                 }
-            }
-        } else if (file.isFile()) {
-            if (!Files.isSymbolicLink(file.toPath())) {
+            } else if (file.isFile()) {
                 files.add(file);
-            } else {
-                LOGGER.log(Level.SEVERE, "{0} is a symbolic link",
-                        new Object[]{file.getAbsolutePath()});
             }
+        } else {
+            LOGGER.log(Level.SEVERE, "{0} is a symbolic link",
+                    new Object[]{file.getAbsolutePath()});
         }
         return files;
     }
