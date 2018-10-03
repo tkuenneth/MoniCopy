@@ -256,14 +256,12 @@ public class Main extends Application implements Pausable {
         t.start();
     }
 
-    private void deleteOrphans(File _from, File _to) {
-        final File from = _to;
-        final File to = _from;
+    private void deleteOrphans(File sourceDir, File destiDir) {
         Thread t = new Thread(() -> {
-            int offset = from.getAbsolutePath().length();
+            int offset = destiDir.getAbsolutePath().length();
             message(getString("started_deleting"));
             FileStore store = new FileStore(this);
-            List<File> files = store.fill(from);
+            List<File> files = store.fill(destiDir);
             if (files == null) {
                 return;
             }
@@ -274,7 +272,7 @@ public class Main extends Application implements Pausable {
                     offset += 1;
                 }
                 String name = filename.substring(offset);
-                File sourceFile = new File(to, name);
+                File sourceFile = new File(sourceDir, name);
                 if (!sourceFile.exists()) {
                     boolean deleted = fileToDelete.delete();
                     if (!deleted) {
@@ -283,7 +281,7 @@ public class Main extends Application implements Pausable {
                     }
                 }
             }
-            deleteOrphanedDirs(_to);
+            deleteOrphanedDirs(destiDir);
             message(getString("finished_deleting"));
             nextStep();
         });
