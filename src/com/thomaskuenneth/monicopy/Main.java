@@ -477,11 +477,17 @@ public class Main extends Application implements Pausable {
                         lastModifiedfileToCopy, lastModifieddestination));
         Thread tFrom = new Thread(() -> {
             sbFrom.setLength(0);
-            sbFrom.append(mdFrom.getChecksum(fileToCopy));
+            final String checksum = mdFrom.getChecksum(fileToCopy);
+            if (checksum != null) {
+                sbFrom.append(checksum);
+            }
         });
         Thread tTo = new Thread(() -> {
             sbTo.setLength(0);
-            sbTo.append(mdTo.getChecksum(destination));
+            final String checksum = mdTo.getChecksum(destination);
+            if (checksum != null) {
+                sbTo.append(checksum);
+            }
         });
         tFrom.start();
         tTo.start();

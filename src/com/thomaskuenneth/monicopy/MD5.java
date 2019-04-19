@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Thomas Kuenneth
+ * Copyright 2017 - 2019 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,9 @@ public class MD5 {
     public void reset() {
         readFromBuffer = false;
         lengthOfFile = 0;
-        md.reset();
+        if (md != null) {
+            md.reset();
+        }
     }
 
     /**
@@ -105,7 +107,7 @@ public class MD5 {
     public synchronized String getChecksum(File file) {
         String result = null;
         reset();
-        if (file.isFile()) {
+        if (file.exists() && file.isFile()) {
             lengthOfFile = (int) file.length();
             int alreadyRead = 0;
             int bytesToRead;
