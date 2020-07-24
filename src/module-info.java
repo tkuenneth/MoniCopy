@@ -1,4 +1,4 @@
-module moniCopy {
+module main {
     requires javafx.base;
     requires javafx.controls;
     requires java.logging;

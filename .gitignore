@@ -16,3 +16,4 @@ dist/
 nbdist/
 .nb-gradle/
 **/Browse.plb
+MoniCopy.app/
