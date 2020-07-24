@@ -17,3 +17,5 @@ nbdist/
 .nb-gradle/
 **/Browse.plb
 MoniCopy.app/
+stdout.txt
+stderr.txt
