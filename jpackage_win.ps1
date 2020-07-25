@@ -11,7 +11,7 @@ Write-Output "Version: $VERSION"
 #rmdir -r "$BASEDIR\MoniCopy"
 
 $COMMAND = "$JAVA_HOME\bin\jpackage.exe"
-$ARGUMENTS = "--name MoniCopy --icon $BASEDIR\artwork\MoniCopy.ico --type msi --app-version $VERSION --module-path $BASEDIR\dist\MoniCopy.jar;`"C:\Program Files\Java\javafx-jmods-13.0.2`" -m main/com.thomaskuenneth.monicopy.Main"
+$ARGUMENTS = "--win-menu --win-menu-group `"Thomas Kuenneth`" --vendor `"Thomas Kuenneth`" --name MoniCopy --icon $BASEDIR\artwork\MoniCopy.ico --type msi --app-version $VERSION --module-path $BASEDIR\dist\MoniCopy.jar;`"C:\Program Files\Java\javafx-jmods-13.0.2`" -m main/com.thomaskuenneth.monicopy.Main"
 
 echo $ARGUMENTS
 
