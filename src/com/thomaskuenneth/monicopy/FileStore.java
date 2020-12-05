@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2018 Thomas Kuenneth
+ * Copyright 2017 - 2020 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,14 +28,14 @@ import java.util.logging.Logger;
  * @author Thomas Kuenneth
  */
 public class FileStore {
-
+    
     private static final Logger LOGGER = Logger.getGlobal();
-
+    
     private final Pausable callback;
     private final List<File> files;
-
+    
     private long numberOfDirectories;
-
+    
     public FileStore(Pausable callback) {
         this.callback = callback;
         files = new ArrayList<>(200000);
@@ -59,8 +59,11 @@ public class FileStore {
     public long getNumberOfDirectories() {
         return numberOfDirectories;
     }
-
-    public synchronized List<File> fill(File file) {
+    
+    public synchronized List<File> fill(File file, List<String> ignores) {
+        if (ignores == null) {
+            ignores = new ArrayList<>();
+        }
         if (file == null) {
             LOGGER.log(Level.SEVERE, "called fill() with null file");
             return null;
@@ -71,17 +74,21 @@ public class FileStore {
         if (!Files.isSymbolicLink(file.toPath())) {
             if (file.isDirectory()) {
                 String absolutePath = file.getAbsolutePath();
-                numberOfDirectories += 1;
-                LOGGER.log(Level.FINE, String.format("filling from %s",
-                        absolutePath));
-                File[] children = file.listFiles();
-                if (children == null) {
-                    LOGGER.log(Level.SEVERE,
-                            String.format("listFiles(%s) returned null", absolutePath));
-                } else {
-                    for (File child : children) {
-                        fill(child);
+                if (!ignores.contains(absolutePath)) {
+                    numberOfDirectories += 1;
+                    LOGGER.log(Level.FINE, String.format("filling from %s",
+                            absolutePath));
+                    File[] children = file.listFiles();
+                    if (children == null) {
+                        LOGGER.log(Level.SEVERE,
+                                String.format("listFiles(%s) returned null", absolutePath));
+                    } else {
+                        for (File child : children) {
+                            fill(child, ignores);
+                        }
                     }
+                } else {
+                    LOGGER.log(Level.INFO, "Ignored {0}", new Object[]{absolutePath});
                 }
             } else if (file.isFile()) {
                 files.add(file);

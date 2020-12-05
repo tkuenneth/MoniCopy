@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2018 Thomas Kuenneth
+ * Copyright 2017 - 2020 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import java.util.logging.SimpleFormatter;
 import java.util.prefs.Preferences;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -36,10 +38,14 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
+import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
@@ -54,12 +60,13 @@ import javafx.stage.Stage;
 public class Main extends Application implements Pausable {
 
     public static final String VERSION = "1.0.0";
-    
+
     private static final Logger LOGGER = Logger.getGlobal();
     private static final String KEY_CANNOT_READ = "cannot_read";
     private static final String KEY_CANNOT_WRITE = "cannot_write";
     private static final String KEY_FILE_FROM = "fileFrom";
     private static final String KEY_FILE_TO = "fileTo";
+    private static final String KEY_IGNORES = "ignores";
     private static final String DELETE_ORPHANS = "deleteOrphanedFiles";
     private static final String KEY_NO_OVERLAP = "no_overlap";
     private static final String EMPTY_STRING = "";
@@ -85,6 +92,8 @@ public class Main extends Application implements Pausable {
 
     private final Object lock = new Object();
 
+    private final ObservableList ignores = FXCollections.observableArrayList();
+
     private Stage primaryStage = null;
     private File fileFrom = null;
     private File fileTo = null;
@@ -96,6 +105,7 @@ public class Main extends Application implements Pausable {
 
     @Override
     public void start(Stage primaryStage) {
+        updateIgnoresFromPreferences();
         state = STATE.IDLE;
         this.primaryStage = primaryStage;
         fileFrom = getFileFromPreferences(KEY_FILE_FROM);
@@ -137,17 +147,62 @@ public class Main extends Application implements Pausable {
         HBox bottom = new HBox(button);
         BorderPane.setMargin(bottom, new Insets(20, 0, 0, 0));
         bottom.setAlignment(Pos.CENTER);
-        root = new BorderPane(center);
+        root = new BorderPane(new HBox(20, center, createIgnores()));
         root.setPadding(new Insets(20, 20, 20, 20));
         root.setBottom(bottom);
-        Scene scene = new Scene(root, 400, 300);
+        Scene scene = new Scene(root);
         primaryStage.setTitle(getString("title"));
         primaryStage.setScene(scene);
+        primaryStage.sizeToScene();
         primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("app.png")));
         primaryStage.setOnCloseRequest((event) -> {
+            updatePreferencesFromIgnores();
             System.exit(0);
         });
         primaryStage.show();
+    }
+
+    private Pane createIgnores() {
+        final ListView listView = new ListView(ignores);
+        final var model = listView.getSelectionModel();
+        model.setSelectionMode(SelectionMode.MULTIPLE);
+        Button add = new Button(getString("add_ignore"));
+        add.setOnAction((ActionEvent event) -> {
+            File result = selectDir(fileFrom, getString("add_ignored_directory"));
+            if ((result != null) && (!ignores.contains(result.getAbsolutePath()))) {
+                ignores.add(result.getAbsolutePath());
+            }
+        });
+        HBox.setHgrow(add, Priority.ALWAYS);
+        add.setMaxWidth(Double.MAX_VALUE);
+        Button delete = new Button(getString("delete_ignore"));
+        delete.setDisable(model.getSelectedItems().size() < 1);
+        delete.setOnAction((ActionEvent event) -> {
+            var items = model.getSelectedItems().toArray();
+            ignores.removeAll(items);
+        });
+        model.selectedItemProperty().addListener((ov, oldValue, newValue) -> {
+            delete.setDisable(newValue == null);
+        });
+        HBox.setHgrow(delete, Priority.ALWAYS);
+        delete.setMaxWidth(Double.MAX_VALUE);
+        VBox buttons = new VBox(10, add, delete);
+        HBox box = new HBox(10, listView, buttons);
+        return new VBox(2, new Text(getString("ignored_directories")), box);
+    }
+
+    private void updatePreferencesFromIgnores() {
+        prefs.put(KEY_IGNORES, String.join("\n", ignores));
+    }
+
+    private void updateIgnoresFromPreferences() {
+        var lines = prefs.get(KEY_IGNORES, "");
+        for (var line : lines.split("\n")) {
+            File dir = new File(line);
+            if (dir.isDirectory()) {
+                ignores.add(line);
+            }
+        }
     }
 
     private CheckBox createAndConfigureCheckBox() {
@@ -163,34 +218,31 @@ public class Main extends Application implements Pausable {
         Button b = new Button();
         b.setOnAction((ActionEvent event) -> {
             switch (state) {
-                case IDLE:
+                case IDLE -> {
                     state = STATE.COPYING;
                     ta = new TextArea();
                     ta.setEditable(false);
                     root.setCenter(ta);
                     copy(fileFrom, fileTo);
-                    break;
-                case COPYING:
+                }
+                case COPYING ->
                     state = STATE.COPY_PAUSED;
-                    break;
-                case COPY_PAUSED:
+                case COPY_PAUSED -> {
                     state = STATE.COPYING;
                     synchronized (lock) {
                         lock.notifyAll();
                     }
-                    break;
-                case DELETING:
+                }
+                case DELETING ->
                     state = STATE.DELETE_PAUSED;
-                    break;
-                case DELETE_PAUSED:
+                case DELETE_PAUSED -> {
                     state = STATE.DELETING;
                     synchronized (lock) {
                         lock.notifyAll();
                     }
-                    break;
-                case FINISHED:
+                }
+                case FINISHED ->
                     Platform.exit();
-                    break;
             }
             updateCopyButton();
         });
@@ -204,7 +256,7 @@ public class Main extends Application implements Pausable {
             message(getString("started_copying"));
             message(getString("find_files"));
             FileStore store = new FileStore(this);
-            List<File> files = store.fill(from);
+            List<File> files = store.fill(from, ignores);
             if (files == null) {
                 return;
             }
@@ -263,7 +315,7 @@ public class Main extends Application implements Pausable {
             int offset = destiDir.getAbsolutePath().length();
             message(getString("started_deleting"));
             FileStore store = new FileStore(this);
-            List<File> files = store.fill(destiDir);
+            List<File> files = store.fill(destiDir, ignores);
             if (files == null) {
                 return;
             }
@@ -317,17 +369,16 @@ public class Main extends Application implements Pausable {
 
     private void nextStep() {
         switch (state) {
-            case COPYING:
+            case COPYING -> {
                 if (cbDelOrphanedFiles.isSelected()) {
                     state = STATE.DELETING;
                     deleteOrphans(fileFrom, fileTo);
                 } else {
                     state = STATE.FINISHED;
                 }
-                break;
-            case DELETING:
+            }
+            case DELETING ->
                 state = STATE.FINISHED;
-                break;
         }
         updateCopyButton();
     }
@@ -417,21 +468,15 @@ public class Main extends Application implements Pausable {
             warning.setText(strWarning);
             button.setDisable(disable);
             switch (state) {
-                case IDLE:
+                case IDLE ->
                     button.setText(getString("start"));
-                    break;
-                case COPYING:
-                case DELETING:
+                case COPYING, DELETING ->
                     button.setText(getString("pause"));
-                    break;
-                case COPY_PAUSED:
-                case DELETE_PAUSED:
+                case COPY_PAUSED, DELETE_PAUSED ->
                     button.setText(getString("continue"));
-                    break;
-                case FINISHED:
+                case FINISHED ->
                     button.setText(getString("close"));
-                    break;
-                default:
+                default ->
                     throw new IllegalStateException("unhandled state: " + state);
             }
         });
