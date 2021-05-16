@@ -10,6 +10,8 @@ foreach($line in $source) {
     }
 }
 
+Set-Location $base_dir
+
 Write-Output "java_home: $java_home"
 Write-Output "base_dir: $base_dir"
 Write-Output "version: $version"

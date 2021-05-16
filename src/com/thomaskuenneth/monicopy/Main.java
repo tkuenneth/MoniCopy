@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2020 Thomas Kuenneth
+ * Copyright 2017 - 2022 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ import javafx.stage.Stage;
  */
 public class Main extends Application implements Pausable {
 
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.0.1";
 
     private static final Logger LOGGER = Logger.getGlobal();
     private static final String KEY_CANNOT_READ = "cannot_read";
@@ -151,7 +151,8 @@ public class Main extends Application implements Pausable {
         root.setPadding(new Insets(20, 20, 20, 20));
         root.setBottom(bottom);
         Scene scene = new Scene(root);
-        primaryStage.setTitle(getString("title"));
+        primaryStage.setTitle(String.format("%s %s", 
+                getString("title"), VERSION));
         primaryStage.setScene(scene);
         primaryStage.sizeToScene();
         primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("app.png")));
@@ -163,10 +164,10 @@ public class Main extends Application implements Pausable {
     }
 
     private Pane createIgnores() {
-        final ListView listView = new ListView(ignores);
+        final var listView = new ListView(ignores);
         final var model = listView.getSelectionModel();
         model.setSelectionMode(SelectionMode.MULTIPLE);
-        Button add = new Button(getString("add_ignore"));
+        var add = new Button(getString("add_ignore"));
         add.setOnAction((ActionEvent event) -> {
             File result = selectDir(fileFrom, getString("add_ignored_directory"));
             if ((result != null) && (!ignores.contains(result.getAbsolutePath()))) {
@@ -175,7 +176,7 @@ public class Main extends Application implements Pausable {
         });
         HBox.setHgrow(add, Priority.ALWAYS);
         add.setMaxWidth(Double.MAX_VALUE);
-        Button delete = new Button(getString("delete_ignore"));
+        var delete = new Button(getString("delete_ignore"));
         delete.setDisable(model.getSelectedItems().size() < 1);
         delete.setOnAction((ActionEvent event) -> {
             var items = model.getSelectedItems().toArray();
@@ -186,8 +187,8 @@ public class Main extends Application implements Pausable {
         });
         HBox.setHgrow(delete, Priority.ALWAYS);
         delete.setMaxWidth(Double.MAX_VALUE);
-        VBox buttons = new VBox(10, add, delete);
-        HBox box = new HBox(10, listView, buttons);
+        var buttons = new VBox(10, add, delete);
+        var box = new HBox(10, listView, buttons);
         return new VBox(2, new Text(getString("ignored_directories")), box);
     }
 
@@ -198,7 +199,7 @@ public class Main extends Application implements Pausable {
     private void updateIgnoresFromPreferences() {
         var lines = prefs.get(KEY_IGNORES, "");
         for (var line : lines.split("\n")) {
-            File dir = new File(line);
+            var dir = new File(line);
             if (dir.isDirectory()) {
                 ignores.add(line);
             }
@@ -206,7 +207,7 @@ public class Main extends Application implements Pausable {
     }
 
     private CheckBox createAndConfigureCheckBox() {
-        CheckBox cb = new CheckBox(getString(DELETE_ORPHANS));
+        var cb = new CheckBox(getString(DELETE_ORPHANS));
         cb.setSelected(prefs.getBoolean(DELETE_ORPHANS, false));
         cb.selectedProperty().addListener((obs, oldVal, newVal) -> {
             prefs.putBoolean(DELETE_ORPHANS, newVal);
@@ -215,7 +216,7 @@ public class Main extends Application implements Pausable {
     }
 
     private Button createAndConfigureButton() {
-        Button b = new Button();
+        var b = new Button();
         b.setOnAction((ActionEvent event) -> {
             switch (state) {
                 case IDLE -> {
