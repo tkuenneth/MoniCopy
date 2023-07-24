@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2022 Thomas Kuenneth
+ * Copyright 2017 - 2023 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,22 @@
  */
 package com.thomaskuenneth.monicopy;
 
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -27,39 +43,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.prefs.Preferences;
-import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Hyperlink;
-import javafx.scene.control.ListView;
-import javafx.scene.control.SelectionMode;
-import javafx.scene.control.TextArea;
-import javafx.scene.image.Image;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Text;
-import javafx.stage.DirectoryChooser;
-import javafx.stage.Stage;
 
-/**
- * This is the main class of MoniCopy.
- *
- * @author Thomas Kuenneth
- */
 public class Main extends Application implements Pausable {
 
-    public static final String VERSION = "1.0.1";
+    public static final String VERSION =
+            ResourceBundle.getBundle("version").getString("VERSION");
 
     private static final Logger LOGGER = Logger.getGlobal();
     private static final String KEY_CANNOT_READ = "cannot_read";
@@ -75,6 +63,7 @@ public class Main extends Application implements Pausable {
     private enum STATE {
         IDLE, COPYING, COPY_PAUSED, DELETING, DELETE_PAUSED, FINISHED
     }
+
     private STATE state;
 
     private final FileCopier copier = new FileCopier();
@@ -92,7 +81,7 @@ public class Main extends Application implements Pausable {
 
     private final Object lock = new Object();
 
-    private final ObservableList ignores = FXCollections.observableArrayList();
+    private final ObservableList<String> ignores = FXCollections.observableArrayList();
 
     private Stage primaryStage = null;
     private File fileFrom = null;
@@ -151,7 +140,7 @@ public class Main extends Application implements Pausable {
         root.setPadding(new Insets(20, 20, 20, 20));
         root.setBottom(bottom);
         Scene scene = new Scene(root);
-        primaryStage.setTitle(String.format("%s %s", 
+        primaryStage.setTitle(String.format("%s %s",
                 getString("title"), VERSION));
         primaryStage.setScene(scene);
         primaryStage.sizeToScene();
@@ -179,8 +168,7 @@ public class Main extends Application implements Pausable {
         var delete = new Button(getString("delete_ignore"));
         delete.setDisable(model.getSelectedItems().size() < 1);
         delete.setOnAction((ActionEvent event) -> {
-            var items = model.getSelectedItems().toArray();
-            ignores.removeAll(items);
+            ignores.removeAll(model.getSelectedItems());
         });
         model.selectedItemProperty().addListener((ov, oldValue, newValue) -> {
             delete.setDisable(newValue == null);
@@ -226,24 +214,21 @@ public class Main extends Application implements Pausable {
                     root.setCenter(ta);
                     copy(fileFrom, fileTo);
                 }
-                case COPYING ->
-                    state = STATE.COPY_PAUSED;
+                case COPYING -> state = STATE.COPY_PAUSED;
                 case COPY_PAUSED -> {
                     state = STATE.COPYING;
                     synchronized (lock) {
                         lock.notifyAll();
                     }
                 }
-                case DELETING ->
-                    state = STATE.DELETE_PAUSED;
+                case DELETING -> state = STATE.DELETE_PAUSED;
                 case DELETE_PAUSED -> {
                     state = STATE.DELETING;
                     synchronized (lock) {
                         lock.notifyAll();
                     }
                 }
-                case FINISHED ->
-                    Platform.exit();
+                case FINISHED -> Platform.exit();
             }
             updateCopyButton();
         });
@@ -378,8 +363,7 @@ public class Main extends Application implements Pausable {
                     state = STATE.FINISHED;
                 }
             }
-            case DELETING ->
-                state = STATE.FINISHED;
+            case DELETING -> state = STATE.FINISHED;
         }
         updateCopyButton();
     }
@@ -469,16 +453,11 @@ public class Main extends Application implements Pausable {
             warning.setText(strWarning);
             button.setDisable(disable);
             switch (state) {
-                case IDLE ->
-                    button.setText(getString("start"));
-                case COPYING, DELETING ->
-                    button.setText(getString("pause"));
-                case COPY_PAUSED, DELETE_PAUSED ->
-                    button.setText(getString("continue"));
-                case FINISHED ->
-                    button.setText(getString("close"));
-                default ->
-                    throw new IllegalStateException("unhandled state: " + state);
+                case IDLE -> button.setText(getString("start"));
+                case COPYING, DELETING -> button.setText(getString("pause"));
+                case COPY_PAUSED, DELETE_PAUSED -> button.setText(getString("continue"));
+                case FINISHED -> button.setText(getString("close"));
+                default -> throw new IllegalStateException("unhandled state: " + state);
             }
         });
     }
@@ -487,13 +466,13 @@ public class Main extends Application implements Pausable {
      * Checks if a file must be copied to the destination. This is the case if
      * a) the file does not exist, b) the files have different lengths, c) have
      * different last modified time stamps and different md5 hashes.
-     *
+     * <p>
      * Note: If both files exist, have the same length, have the same md5 hash
      * but different last modified time stamps, the time stamp of the
      * destination is set to the time stamp of the source, to prevent future md5
      * hash checks if the file size remains the same.
      *
-     * @param fileToCopy source file
+     * @param fileToCopy  source file
      * @param destination destination
      * @return true if the file must be copied
      */
@@ -558,11 +537,6 @@ public class Main extends Application implements Pausable {
         return copy;
     }
 
-    /**
-     * App entry point.
-     *
-     * @param args the command line arguments
-     */
     public static void main(String[] args) {
         try {
             File f = new File(System.getProperty("user.home", "."), "MoniCopy.log");

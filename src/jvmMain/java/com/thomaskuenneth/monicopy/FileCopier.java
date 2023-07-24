@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2018 Thomas Kuenneth
+ * Copyright 2017 - 2023 Thomas Kuenneth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,6 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * This class copies files.
- *
- * @author Thomas Kuenneth
- */
 public class FileCopier {
 
     private static final Logger LOGGER = Logger.getGlobal();
@@ -53,9 +48,11 @@ public class FileCopier {
         long num;
         long buflen = buffer.length;
         File parent = to.getParentFile();
-        parent.mkdirs();
+        var created = parent.mkdirs();
+        LOGGER.log(Level.INFO, String.format("%s created: %b",
+                parent.getAbsolutePath(), created));
         try (FileInputStream in = new FileInputStream(from);
-                FileOutputStream out = new FileOutputStream(to)) {
+             FileOutputStream out = new FileOutputStream(to)) {
             while ((num = (lenFrom - read)) > 0) {
                 if (num > buflen) {
                     num = buflen;
@@ -74,7 +71,9 @@ public class FileCopier {
 
     public synchronized boolean copy(byte[] from, int lenFrom, File to) {
         File parent = to.getParentFile();
-        parent.mkdirs();
+        var created = parent.mkdirs();
+        LOGGER.log(Level.INFO, String.format("%s created: %b",
+                parent.getAbsolutePath(), created));
         try (FileOutputStream out = new FileOutputStream(to)) {
             out.write(from, 0, lenFrom);
         } catch (IOException e) {
