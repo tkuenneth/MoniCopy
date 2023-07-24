@@ -462,20 +462,6 @@ public class Main extends Application implements Pausable {
         });
     }
 
-    /**
-     * Checks if a file must be copied to the destination. This is the case if
-     * a) the file does not exist, b) the files have different lengths, c) have
-     * different last modified time stamps and different md5 hashes.
-     * <p>
-     * Note: If both files exist, have the same length, have the same md5 hash
-     * but different last modified time stamps, the time stamp of the
-     * destination is set to the time stamp of the source, to prevent future md5
-     * hash checks if the file size remains the same.
-     *
-     * @param fileToCopy  source file
-     * @param destination destination
-     * @return true if the file must be copied
-     */
     private synchronized boolean mustBeCopied(File fileToCopy, File destination) {
         LOGGER.log(Level.INFO,
                 String.format("preparing to copy %s",
@@ -483,7 +469,7 @@ public class Main extends Application implements Pausable {
         mdFrom.reset();
         if (!destination.exists()) {
             LOGGER.log(Level.INFO,
-                    String.format("not found in destination"));
+                    "not found in destination");
             return true;
         }
         long lenFileToCopy = fileToCopy.length();
@@ -532,12 +518,20 @@ public class Main extends Application implements Pausable {
             LOGGER.log(Level.INFO, String.format("different md5 hashes: %s != %s",
                     strSbFrom, strSbTo));
         } else {
-            destination.setLastModified(fileToCopy.lastModified());
+            try {
+                var succeeded = destination.setLastModified(fileToCopy.lastModified());
+                LOGGER.log(Level.INFO, String.format("%s setLastModified(): %b",
+                        destination.getAbsolutePath(), succeeded));
+            } catch (IllegalArgumentException e) {
+                LOGGER.log(Level.SEVERE, "setLastModified()", e);
+            }
         }
         return copy;
     }
 
     public static void main(String[] args) {
+        // FIXME: wrap this in a if macos...
+        System.setProperty("prism.order", "j2d");
         try {
             File f = new File(System.getProperty("user.home", "."), "MoniCopy.log");
             FileHandler handler = new FileHandler(f.getAbsolutePath(), false);

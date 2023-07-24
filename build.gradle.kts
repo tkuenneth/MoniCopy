@@ -50,7 +50,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "com.thomaskuenneth.monicopy.MainKt"
+        mainClass = "com.thomaskuenneth.monicopy.LauncherKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "MoniCopy"
@@ -61,7 +61,6 @@ compose.desktop {
             macOS {
                 bundleID = "com.thomaskuenneth.monicopy"
                 iconFile.set(project.file("artwork/MoniCopy.icns"))
-                jvmArgs += mutableListOf("-Dprism.order=j2d")
             }
             windows {
                 iconFile.set(project.file("artwork/MoniCopy.ico"))
