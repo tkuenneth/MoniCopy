@@ -1,16 +1,24 @@
+import org.gradle.api.tasks.JavaExec
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.*
 import java.io.*
 
 plugins {
     kotlin("multiplatform")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.compose")
-    id("org.openjfx.javafxplugin") version "0.0.14"
 }
 
-javafx {
-    version = "20"
-    modules = listOf("javafx.controls")
+val javafxVersion = "20"
+val javafxPlatform = run {
+    val os = System.getProperty("os.name").lowercase(Locale.US)
+    val arch = System.getProperty("os.arch")
+    when {
+        os.contains("win") -> "win"
+        os.contains("mac") && arch == "aarch64" -> "mac-aarch64"
+        os.contains("mac") -> "mac"
+        else -> "linux"
+    }
 }
 
 group = "com.thomaskuenneth.monicopy"
@@ -31,25 +39,45 @@ repositories {
 
 kotlin {
     jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = "17"
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
-        withJava()
     }
     sourceSets {
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                implementation("org.openjfx:javafx:17")
+                listOf("javafx-base", "javafx-graphics", "javafx-controls").forEach { module ->
+                    implementation("org.openjfx:$module:$javafxVersion:$javafxPlatform")
+                }
             }
         }
         val jvmTest by getting
     }
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+tasks.withType<JavaExec>().configureEach {
+    if (name != "run") return@configureEach
+    doFirst {
+        val javafxJars = classpath.filter { it.name.startsWith("javafx-") }
+        if (javafxJars.isEmpty) return@doFirst
+        classpath = classpath - javafxJars
+        jvmArgs(
+            "--module-path", javafxJars.asPath,
+            "--add-modules", "javafx.controls",
+        )
+    }
+}
+
 compose.desktop {
     application {
-        mainClass = "com.thomaskuenneth.monicopy.LauncherKt"
+        mainClass = "com.thomaskuenneth.monicopy.Launcher"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "MoniCopy"
