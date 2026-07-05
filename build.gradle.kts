@@ -1,24 +1,11 @@
-import org.gradle.api.tasks.JavaExec
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import java.util.*
 import java.io.*
+import java.util.*
 
 plugins {
     kotlin("multiplatform")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.compose")
-}
-
-val javafxVersion = "20"
-val javafxPlatform = run {
-    val os = System.getProperty("os.name").lowercase(Locale.US)
-    val arch = System.getProperty("os.arch")
-    when {
-        os.contains("win") -> "win"
-        os.contains("mac") && arch == "aarch64" -> "mac-aarch64"
-        os.contains("mac") -> "mac"
-        else -> "linux"
-    }
 }
 
 group = "com.thomaskuenneth.monicopy"
@@ -44,12 +31,28 @@ kotlin {
         }
     }
     sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(compose.components.resources)
+                implementation(compose.runtime)
+                implementation(compose.foundation)
+                implementation(compose.material3)
+                implementation(compose.ui)
+                implementation("io.insert-koin:koin-core:4.1.1")
+                implementation("io.insert-koin:koin-compose:4.1.1")
+                implementation("io.insert-koin:koin-compose-viewmodel:4.1.1")
+                implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+                implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+                implementation("org.jetbrains.compose.material3.adaptive:adaptive:1.2.0")
+                implementation("org.jetbrains.compose.material3.adaptive:adaptive-layout:1.2.0")
+                implementation("org.jetbrains.compose.material3.adaptive:adaptive-navigation:1.2.0")
+            }
+        }
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                listOf("javafx-base", "javafx-graphics", "javafx-controls").forEach { module ->
-                    implementation("org.openjfx:$module:$javafxVersion:$javafxPlatform")
-                }
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.1")
             }
         }
         val jvmTest by getting
@@ -62,28 +65,20 @@ java {
     }
 }
 
-tasks.withType<JavaExec>().configureEach {
-    if (name != "run") return@configureEach
-    doFirst {
-        val javafxJars = classpath.filter { it.name.startsWith("javafx-") }
-        if (javafxJars.isEmpty) return@doFirst
-        classpath = classpath - javafxJars
-        jvmArgs(
-            "--module-path", javafxJars.asPath,
-            "--add-modules", "javafx.controls",
-        )
-    }
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.thomaskuenneth.monicopy.generated.resources"
 }
 
 compose.desktop {
     application {
-        mainClass = "com.thomaskuenneth.monicopy.Launcher"
+        mainClass = "com.thomaskuenneth.monicopy.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "MoniCopy"
             packageVersion = version.toString()
             description = "An easy to use folder copy app"
-            copyright = "2017 - 2023 Thomas Kuenneth. All rights reserved."
+            copyright = "2017 - 2026 Thomas Kuenneth. All rights reserved."
             vendor = "Thomas Kuenneth"
             macOS {
                 bundleID = "com.thomaskuenneth.monicopy"
