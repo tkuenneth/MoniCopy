@@ -9,7 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.thomaskuenneth.monicopy.appVersion
 import com.thomaskuenneth.monicopy.generated.resources.Res
+import com.thomaskuenneth.monicopy.generated.resources.app_icon
 import com.thomaskuenneth.monicopy.generated.resources.title
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import com.thomaskuenneth.monicopy.app.AppViewModel
 import com.thomaskuenneth.monicopy.app.DialogVisibility
@@ -28,12 +30,14 @@ import java.util.logging.SimpleFormatter
 
 fun main() {
     setupLogging()
+    setupDockIcon()
     application {
         initKoin(jvmModule) {}
         Window(
             onCloseRequest = ::exitApplication,
             title = "${stringResource(Res.string.title)} $appVersion",
             state = rememberWindowState(width = 720.dp, height = 480.dp),
+            icon = painterResource(Res.drawable.app_icon),
         ) {
             MoniCopyApp(onClose = ::exitApplication) { viewModel ->
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()

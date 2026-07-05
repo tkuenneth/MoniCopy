@@ -11,7 +11,9 @@ import androidx.compose.ui.window.rememberDialogState
 import com.thomaskuenneth.monicopy.app.AppViewModel
 import com.thomaskuenneth.monicopy.app.Settings
 import com.thomaskuenneth.monicopy.generated.resources.Res
+import com.thomaskuenneth.monicopy.generated.resources.app_icon
 import com.thomaskuenneth.monicopy.generated.resources.settings_short
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -24,6 +26,7 @@ fun FrameWindowScope.SettingsWindow(
         DialogWindow(
             state = rememberDialogState(position = getCenteredPosition()),
             onCloseRequest = onCloseRequest,
+            icon = painterResource(Res.drawable.app_icon),
             resizable = false,
             title = stringResource(Res.string.settings_short),
         ) {
