@@ -19,12 +19,12 @@ fun AppBottomSheets(
     appUiState: AppUiState,
 ) {
     if (appUiState.aboutVisibility == SheetVisibility.Visible) {
-        AppBottomSheet(onDismiss = { appViewModel.setShouldShowAbout(false) }) {
+        AppBottomSheet(onDismiss = { appViewModel.showAboutSheet(false) }) {
             About(modifier = Modifier.fillMaxWidth())
         }
     }
     if (appUiState.settingsVisibility == SheetVisibility.Visible) {
-        AppBottomSheet(onDismiss = { appViewModel.setShouldShowSettings(false) }) {
+        AppBottomSheet(onDismiss = { appViewModel.showSettingsSheet(false) }) {
             Settings(viewModel = appViewModel, modifier = Modifier.fillMaxWidth())
         }
     }

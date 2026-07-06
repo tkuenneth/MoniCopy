@@ -40,11 +40,11 @@ fun main() {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 with(Desktop.getDesktop()) {
                     LaunchedEffect(Unit) {
-                        installPreferencesHandler { viewModel.setShouldShowSettings(true) }
+                        installPreferencesHandler { viewModel.showSettingsSheet(true) }
                     }
                     LaunchedEffect(uiState.showExtendedAboutDialog) {
                         if (uiState.showExtendedAboutDialog) {
-                            installAboutHandler { viewModel.setShouldShowAbout(true) }
+                            installAboutHandler { viewModel.showAboutSheet(true) }
                         } else {
                             installAboutHandler(null)
                         }
@@ -53,8 +53,8 @@ fun main() {
                 MoniCopyMenuBar(
                     navigationState = navigationState,
                     exit = ::exitApplication,
-                    showAbout = { viewModel.setShouldShowAbout(true) },
-                    showSettings = { viewModel.setShouldShowSettings(true) },
+                    showAbout = { viewModel.showAboutSheet(true) },
+                    showSettings = { viewModel.showSettingsSheet(true) },
                 )
             }
         }

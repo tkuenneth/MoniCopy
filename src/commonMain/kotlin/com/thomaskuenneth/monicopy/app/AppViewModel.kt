@@ -29,10 +29,10 @@ class AppViewModel(
     )
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
-    fun setShouldShowAbout(shouldShowAbout: Boolean) {
+    fun showAboutSheet(show: Boolean) {
         _uiState.update { state ->
             state.copy(
-                aboutVisibility = if (shouldShowAbout) {
+                aboutVisibility = if (show) {
                     SheetVisibility.Visible
                 } else {
                     SheetVisibility.Hidden
@@ -41,10 +41,10 @@ class AppViewModel(
         }
     }
 
-    fun setShouldShowSettings(shouldShowSettings: Boolean) {
+    fun showSettingsSheet(show: Boolean) {
         _uiState.update { state ->
             state.copy(
-                settingsVisibility = if (shouldShowSettings) {
+                settingsVisibility = if (show) {
                     SheetVisibility.Visible
                 } else {
                     SheetVisibility.Hidden
