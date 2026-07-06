@@ -11,6 +11,7 @@ import com.thomaskuenneth.monicopy.generated.resources.destination_folder
 import com.thomaskuenneth.monicopy.generated.resources.message_template
 import com.thomaskuenneth.monicopy.generated.resources.source_folder
 import com.thomaskuenneth.monicopy.prepareDirectories
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,8 +27,8 @@ data class CopyUiState(
     val copyState: CopyState = CopyState.IDLE,
     val sourceDir: String? = null,
     val destDir: String? = null,
-    val ignores: List<String> = emptyList(),
-    val selectedIgnores: Set<String> = emptySet(),
+    val ignores: List<File> = emptyList(),
+    val selectedIgnores: Set<File> = emptySet(),
     val deleteOrphans: Boolean = false,
     val logMessages: List<String> = emptyList(),
 ) {
@@ -50,7 +51,7 @@ class CopyViewModel(
     }
 
     override fun onCleared() {
-        repository.saveIgnores(_uiState.value.ignores)
+        repository.saveIgnores(_uiState.value.ignores.map { it.absolutePath })
         super.onCleared()
     }
 
@@ -58,10 +59,11 @@ class CopyViewModel(
         val title = blockingGetString(Res.string.add_ignored_directory)
         val result = chooseDirectory(title, _uiState.value.sourceDir)
         if (result != null) {
+            val directory = File(result)
             mutate { state ->
-                if (result in state.ignores) state else state.copy(ignores = state.ignores + result)
+                if (directory in state.ignores) state else state.copy(ignores = state.ignores + directory)
             }
-            repository.saveIgnores(_uiState.value.ignores)
+            repository.saveIgnores(_uiState.value.ignores.map { it.absolutePath })
         }
     }
 
@@ -72,15 +74,15 @@ class CopyViewModel(
                 selectedIgnores = emptySet(),
             )
         }
-        repository.saveIgnores(_uiState.value.ignores)
+        repository.saveIgnores(_uiState.value.ignores.map { it.absolutePath })
     }
 
-    fun toggleIgnoreSelection(path: String) {
+    fun toggleIgnoreSelection(directory: File) {
         mutate { state ->
-            val selected = if (path in state.selectedIgnores) {
-                state.selectedIgnores - path
+            val selected = if (directory in state.selectedIgnores) {
+                state.selectedIgnores - directory
             } else {
-                state.selectedIgnores + path
+                state.selectedIgnores + directory
             }
             state.copy(selectedIgnores = selected)
         }
@@ -118,7 +120,7 @@ class CopyViewModel(
                 val to = _uiState.value.destDir ?: return
                 mutate { it.copy(copyState = CopyState.COPYING, logMessages = emptyList()) }
                 viewModelScope.launch(Dispatchers.Default) {
-                    val ignores = _uiState.value.ignores
+                    val ignores = _uiState.value.ignores.map { it.absolutePath }
                     engine.copy(from, to, ignores, ::appendLog)
                     nextStep(onFinished)
                 }
@@ -150,7 +152,7 @@ class CopyViewModel(
                 deleteOrphans = prefs.deleteOrphans,
                 sourceDir = prefs.sourceDir,
                 destDir = prefs.destDir,
-                ignores = prefs.ignores,
+                ignores = prefs.ignores.map(::File),
             )
         }
     }
@@ -176,7 +178,7 @@ class CopyViewModel(
                     val to = _uiState.value.destDir ?: return
                     mutate { it.copy(copyState = CopyState.DELETING) }
                     viewModelScope.launch(Dispatchers.Default) {
-                        val ignores = _uiState.value.ignores
+                        val ignores = _uiState.value.ignores.map { it.absolutePath }
                         engine.deleteOrphans(from, to, ignores, ::appendLog)
                         nextStep(onFinished)
                     }

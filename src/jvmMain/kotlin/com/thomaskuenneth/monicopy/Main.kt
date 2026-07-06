@@ -39,7 +39,7 @@ fun main() {
             state = rememberWindowState(width = 720.dp, height = 480.dp),
             icon = painterResource(Res.drawable.app_icon),
         ) {
-            MoniCopyApp(onClose = ::exitApplication) { viewModel ->
+            MoniCopyApp(onClose = ::exitApplication) { viewModel, navigationState ->
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 with(Desktop.getDesktop()) {
                     LaunchedEffect(Unit) {
@@ -54,6 +54,7 @@ fun main() {
                     }
                 }
                 MoniCopyMenuBar(
+                    navigationState = navigationState,
                     exit = ::exitApplication,
                     showAbout = { viewModel.setShouldShowAbout(true) },
                     showSettings = { viewModel.setShouldShowSettings(true) },

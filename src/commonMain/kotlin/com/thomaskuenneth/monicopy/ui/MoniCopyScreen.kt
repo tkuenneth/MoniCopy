@@ -6,7 +6,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.thomaskuenneth.monicopy.NavigationState
 import com.thomaskuenneth.monicopy.copy.CopyUiState
 import com.thomaskuenneth.monicopy.copy.CopyViewModel
 
@@ -14,6 +14,7 @@ import com.thomaskuenneth.monicopy.copy.CopyViewModel
 fun MoniCopyScreen(
     uiState: CopyUiState,
     viewModel: CopyViewModel,
+    navigationState: NavigationState,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -26,7 +27,7 @@ fun MoniCopyScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(all = 16.dp)
+                    .padding(UIConstants.PREFERRED_VERTICAL_PADDING)
             ) {
                 when (uiState.isOperationMode) {
                     true -> InFlightPane(
@@ -36,13 +37,14 @@ fun MoniCopyScreen(
                     false -> SetupPane(
                         uiState = uiState,
                         viewModel = viewModel,
+                        navigationState = navigationState,
                     )
                 }
             }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = UIConstants.PREFERRED_VERTICAL_PADDING),
                 horizontalArrangement = Arrangement.Center,
             ) {
                 Button(

@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.thomaskuenneth.monicopy.ui.UIConstants
 import com.thomaskuenneth.monicopy.appVersion
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.artwork_no_background
@@ -23,7 +24,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun About(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.padding(8.dp),
+        modifier = modifier.padding(UIConstants.SMALL_VERTICAL_PADDING),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -34,7 +35,7 @@ fun About(modifier: Modifier = Modifier) {
         )
         Text(
             text = stringResource(Res.string.title),
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = UIConstants.PREFERRED_VERTICAL_PADDING),
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(

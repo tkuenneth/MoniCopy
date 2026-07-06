@@ -33,6 +33,8 @@
     <string name="about">About</string>
     <string name="about_short">About MoniCopy</string>
     <string name="quit">Quit</string>
+    <string name="view">View</string>
+    <string name="back">Back</string>
     <string name="color_scheme">Color scheme</string>
     <string name="system">System</string>
     <string name="light">Light</string>

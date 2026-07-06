@@ -13,8 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.thomaskuenneth.monicopy.ui.UIConstants
 import com.thomaskuenneth.monicopy.ui.CheckboxWithLabel
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.color_scheme
@@ -33,8 +33,11 @@ fun Settings(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val onClick: (ColorSchemeMode) -> Unit = { viewModel.setColorSchemeMode(it) }
     Column(
-        modifier = modifier.padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.padding(
+            horizontal = UIConstants.LARGE_HORIZONTAL_PADDING,
+            vertical = UIConstants.LARGE_VERTICAL_PADDING,
+        ),
+        verticalArrangement = Arrangement.spacedBy(UIConstants.PREFERRED_VERTICAL_PADDING),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun CheckboxWithLabel(
@@ -26,7 +25,7 @@ fun CheckboxWithLabel(
             role = Role.Checkbox,
         ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(UIConstants.SMALL_HORIZONTAL_PADDING),
     ) {
         Checkbox(checked = checked, onCheckedChange = onCheckedChange)
         Text(
