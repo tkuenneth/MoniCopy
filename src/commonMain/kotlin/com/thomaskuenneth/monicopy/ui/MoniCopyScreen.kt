@@ -1,5 +1,6 @@
 package com.thomaskuenneth.monicopy.ui
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
@@ -29,16 +30,22 @@ fun MoniCopyScreen(
                     .weight(1f)
                     .padding(UIConstants.PREFERRED_VERTICAL_PADDING)
             ) {
-                when (uiState.isOperationMode) {
-                    true -> InFlightPane(
-                        logMessages = uiState.logMessages,
-                    )
+                Crossfade(
+                    targetState = uiState.isOperationMode,
+                    modifier = Modifier.fillMaxSize(),
+                    label = "mainPane",
+                ) { isOperationMode ->
+                    when (isOperationMode) {
+                        true -> InFlightPane(
+                            logMessages = uiState.logMessages,
+                        )
 
-                    false -> SetupPane(
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        navigationState = navigationState,
-                    )
+                        false -> SetupPane(
+                            uiState = uiState,
+                            viewModel = viewModel,
+                            navigationState = navigationState,
+                        )
+                    }
                 }
             }
             Row(
