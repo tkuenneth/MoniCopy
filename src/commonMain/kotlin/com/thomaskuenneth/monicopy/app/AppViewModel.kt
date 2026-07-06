@@ -1,6 +1,8 @@
 package com.thomaskuenneth.monicopy.app
 
 import androidx.lifecycle.ViewModel
+import com.thomaskuenneth.monicopy.platform.OperatingSystem
+import com.thomaskuenneth.monicopy.platform.PlatformInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,6 +13,10 @@ enum class SheetVisibility {
 }
 
 data class AppUiState(
+    val platformName: String,
+    val appVersion: String,
+    val operatingSystem: OperatingSystem,
+    val showExtendedAboutDialogCheckbox: Boolean,
     val aboutVisibility: SheetVisibility = SheetVisibility.Hidden,
     val settingsVisibility: SheetVisibility = SheetVisibility.Hidden,
     val colorSchemeMode: ColorSchemeMode = ColorSchemeMode.System,
@@ -19,10 +25,15 @@ data class AppUiState(
 
 class AppViewModel(
     private val repository: AppRepository,
+    platformInfo: PlatformInfo,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
         AppUiState(
+            platformName = platformInfo.platformName,
+            appVersion = platformInfo.appVersion,
+            operatingSystem = platformInfo.operatingSystem,
+            showExtendedAboutDialogCheckbox = platformInfo.showExtendedAboutDialogCheckbox,
             colorSchemeMode = repository.getColorSchemeMode(),
             showExtendedAboutDialog = repository.getShowExtendedAboutDialog(),
         ),

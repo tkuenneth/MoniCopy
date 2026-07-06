@@ -3,13 +3,13 @@ package com.thomaskuenneth.monicopy.copy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.thomaskuenneth.monicopy.blockingGetString
-import com.thomaskuenneth.monicopy.chooseDirectory
-import com.thomaskuenneth.monicopy.formatLogTime
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.add_ignored_directory
 import com.thomaskuenneth.monicopy.generated.resources.destination_folder
 import com.thomaskuenneth.monicopy.generated.resources.message_template
 import com.thomaskuenneth.monicopy.generated.resources.source_folder
+import com.thomaskuenneth.monicopy.platform.DirectoryChooser
+import com.thomaskuenneth.monicopy.platform.LogTimeFormatter
 import com.thomaskuenneth.monicopy.prepareDirectories
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +39,8 @@ data class CopyUiState(
 class CopyViewModel(
     private val engine: CopyEngine,
     private val repository: CopyRepository,
+    private val directoryChooser: DirectoryChooser,
+    private val logTimeFormatter: LogTimeFormatter,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CopyUiState())
@@ -57,7 +59,7 @@ class CopyViewModel(
 
     fun addIgnore() {
         val title = blockingGetString(Res.string.add_ignored_directory)
-        val result = chooseDirectory(title, _uiState.value.sourceDir)
+        val result = directoryChooser.chooseDirectory(title, _uiState.value.sourceDir)
         if (result != null) {
             val directory = File(result)
             mutate { state ->
@@ -95,7 +97,7 @@ class CopyViewModel(
 
     fun selectSource() {
         val title = blockingGetString(Res.string.source_folder)
-        val result = chooseDirectory(title, _uiState.value.sourceDir)
+        val result = directoryChooser.chooseDirectory(title, _uiState.value.sourceDir)
         if (result != null) {
             repository.saveSourceDir(result)
             mutate { it.copy(sourceDir = result) }
@@ -105,7 +107,7 @@ class CopyViewModel(
 
     fun selectDest() {
         val title = blockingGetString(Res.string.destination_folder)
-        val result = chooseDirectory(title, _uiState.value.destDir)
+        val result = directoryChooser.chooseDirectory(title, _uiState.value.destDir)
         if (result != null) {
             repository.saveDestDir(result)
             mutate { it.copy(destDir = result) }
@@ -176,7 +178,7 @@ class CopyViewModel(
     }
 
     private fun appendLog(msg: String) {
-        val time = formatLogTime()
+        val time = logTimeFormatter.format()
         val line = blockingGetString(Res.string.message_template, time, msg).trimEnd()
         mutate { it.copy(logMessages = it.logMessages + line) }
     }

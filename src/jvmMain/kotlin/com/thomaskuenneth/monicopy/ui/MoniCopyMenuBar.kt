@@ -6,7 +6,7 @@ import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import com.thomaskuenneth.monicopy.NavigationState
-import com.thomaskuenneth.monicopy.OperatingSystem
+import com.thomaskuenneth.monicopy.platform.OperatingSystem
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.about
 import com.thomaskuenneth.monicopy.generated.resources.back
@@ -15,11 +15,11 @@ import com.thomaskuenneth.monicopy.generated.resources.help
 import com.thomaskuenneth.monicopy.generated.resources.quit
 import com.thomaskuenneth.monicopy.generated.resources.settings
 import com.thomaskuenneth.monicopy.generated.resources.view
-import com.thomaskuenneth.monicopy.operatingSystem
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun FrameWindowScope.MoniCopyMenuBar(
+    operatingSystem: OperatingSystem,
     navigationState: NavigationState,
     exit: () -> Unit,
     showAbout: () -> Unit,

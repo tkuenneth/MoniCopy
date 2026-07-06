@@ -11,18 +11,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.thomaskuenneth.monicopy.appVersion
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.artwork_no_background
 import com.thomaskuenneth.monicopy.generated.resources.title
-import com.thomaskuenneth.monicopy.platformName
+import com.thomaskuenneth.monicopy.app.AppUiState
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_HORIZONTAL_PADDING
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_VERTICAL_PADDING
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun About(modifier: Modifier = Modifier) {
+fun About(
+    uiState: AppUiState,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.padding(
             horizontal = PREFERRED_HORIZONTAL_PADDING,
@@ -41,11 +43,11 @@ fun About(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = appVersion,
+            text = uiState.appVersion,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = platformName,
+            text = uiState.platformName,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,

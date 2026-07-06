@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.thomaskuenneth.monicopy.generated.resources.*
-import com.thomaskuenneth.monicopy.shouldShowExtendedAboutDialogCheckbox
 import com.thomaskuenneth.monicopy.ui.CheckboxWithLabel
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_HORIZONTAL_PADDING
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_VERTICAL_PADDING
@@ -53,7 +52,7 @@ fun Settings(
                 onClick = onClick,
             )
         }
-        if (shouldShowExtendedAboutDialogCheckbox()) {
+        if (uiState.showExtendedAboutDialogCheckbox) {
             CheckboxWithLabel(
                 label = stringResource(Res.string.show_extended_about_dialog),
                 checked = uiState.showExtendedAboutDialog,

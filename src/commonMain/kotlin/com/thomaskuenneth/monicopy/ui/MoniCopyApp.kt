@@ -6,16 +6,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.thomaskuenneth.monicopy.NavigationState
-import com.thomaskuenneth.monicopy.copy.CopyViewModel
 import com.thomaskuenneth.monicopy.app.AppViewModel
 import com.thomaskuenneth.monicopy.app.colorScheme
+import com.thomaskuenneth.monicopy.copy.CopyViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun MoniCopyApp(
+    appViewModel: AppViewModel = koinViewModel(),
     platformContent: @Composable (AppViewModel, NavigationState) -> Unit = { _, _ -> },
 ) {
-    val appViewModel: AppViewModel = koinViewModel()
     val copyViewModel: CopyViewModel = koinViewModel()
     val appUiState by appViewModel.uiState.collectAsStateWithLifecycle()
     val copyUiState by copyViewModel.uiState.collectAsStateWithLifecycle()
