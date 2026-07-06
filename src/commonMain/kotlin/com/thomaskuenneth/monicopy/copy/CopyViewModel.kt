@@ -123,7 +123,7 @@ class CopyViewModel(
         }
     }
 
-    fun onActionButtonClick(onFinished: () -> Unit) {
+    fun onActionButtonClick() {
         when (_uiState.value.copyState) {
             CopyState.IDLE -> {
                 val from = _uiState.value.sourceDir ?: return
@@ -133,7 +133,7 @@ class CopyViewModel(
                     val ignores = _uiState.value.ignores.map { it.absolutePath }
                     engine.copy(from, to, ignores, ::appendLog)
                     if (_uiState.value.copyState == CopyState.IDLE) return@launch
-                    nextStep(onFinished)
+                    nextStep()
                 }
             }
             CopyState.COPYING -> {
@@ -151,7 +151,7 @@ class CopyViewModel(
                 engine.resume()
             }
             CopyState.FINISHED -> {
-                onFinished()
+                mutate { it.copy(copyState = CopyState.IDLE, logMessages = emptyList()) }
             }
         }
     }
@@ -181,7 +181,7 @@ class CopyViewModel(
         mutate { it.copy(logMessages = it.logMessages + line) }
     }
 
-    private fun nextStep(onFinished: () -> Unit) {
+    private fun nextStep() {
         if (_uiState.value.copyState == CopyState.IDLE) return
         when (_uiState.value.copyState) {
             CopyState.COPYING -> {
@@ -201,7 +201,7 @@ class CopyViewModel(
                         val ignores = _uiState.value.ignores.map { it.absolutePath }
                         engine.deleteOrphans(from, to, ignores, ::appendLog)
                         if (_uiState.value.copyState == CopyState.IDLE) return@launch
-                        nextStep(onFinished)
+                        nextStep()
                     }
                 } else {
                     mutate { state ->

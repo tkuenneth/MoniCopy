@@ -25,7 +25,6 @@ fun MoniCopyScreen(
     uiState: CopyUiState,
     viewModel: CopyViewModel,
     navigationState: NavigationState,
-    onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val validation = rememberDirectoryValidation(uiState.sourceDir, uiState.destDir)
@@ -79,7 +78,7 @@ fun MoniCopyScreen(
                             PrimaryActionButton(
                                 copyState = CopyState.IDLE,
                                 validation = validation,
-                                onClick = { viewModel.onActionButtonClick(onClose) },
+                                onClick = viewModel::onActionButtonClick,
                             )
                         }
 
@@ -90,7 +89,7 @@ fun MoniCopyScreen(
                             PrimaryActionButton(
                                 copyState = uiState.copyState.toInProgressCopyState(),
                                 validation = validation,
-                                onClick = { viewModel.onActionButtonClick(onClose) },
+                                onClick = viewModel::onActionButtonClick,
                             )
                         }
 
@@ -98,7 +97,7 @@ fun MoniCopyScreen(
                             PrimaryActionButton(
                                 copyState = CopyState.FINISHED,
                                 validation = validation,
-                                onClick = { viewModel.onActionButtonClick(onClose) },
+                                onClick = viewModel::onActionButtonClick,
                             )
                         }
                     }

@@ -6,7 +6,7 @@
     <string name="pause">Pause</string>
     <string name="action_continue">Continue</string>
     <string name="cancel">Cancel</string>
-    <string name="close">Close</string>
+    <string name="finish">Finish</string>
     <string name="started_copying">Started copying files</string>
     <string name="started_deleting">Started deleting orphaned files and folders</string>
     <string name="finished_copying">Finished copying files</string>

@@ -9,7 +9,7 @@ import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.action_continue
 import com.thomaskuenneth.monicopy.generated.resources.cannot_read
 import com.thomaskuenneth.monicopy.generated.resources.cannot_write
-import com.thomaskuenneth.monicopy.generated.resources.close
+import com.thomaskuenneth.monicopy.generated.resources.finish
 import com.thomaskuenneth.monicopy.generated.resources.no_overlap
 import com.thomaskuenneth.monicopy.generated.resources.pause
 import com.thomaskuenneth.monicopy.generated.resources.start
@@ -29,14 +29,14 @@ fun DirectoryValidationResult.warningMessage(): String = when (issue) {
 }
 
 enum class ActionButtonLabel {
-    Start, Pause, Continue, Close,
+    Start, Pause, Continue, Finish,
 }
 
 fun CopyState.toActionButtonLabel(): ActionButtonLabel = when (this) {
     CopyState.IDLE -> ActionButtonLabel.Start
     CopyState.COPYING, CopyState.DELETING -> ActionButtonLabel.Pause
     CopyState.COPY_PAUSED, CopyState.DELETE_PAUSED -> ActionButtonLabel.Continue
-    CopyState.FINISHED -> ActionButtonLabel.Close
+    CopyState.FINISHED -> ActionButtonLabel.Finish
 }
 
 @Composable
@@ -45,7 +45,7 @@ fun actionButtonText(label: ActionButtonLabel): String = stringResource(
         ActionButtonLabel.Start -> Res.string.start
         ActionButtonLabel.Pause -> Res.string.pause
         ActionButtonLabel.Continue -> Res.string.action_continue
-        ActionButtonLabel.Close -> Res.string.close
+        ActionButtonLabel.Finish -> Res.string.finish
     },
 )
 

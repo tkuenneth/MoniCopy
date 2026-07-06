@@ -39,7 +39,7 @@ fun main() {
             state = rememberWindowState(width = 720.dp, height = 480.dp),
             icon = painterResource(Res.drawable.app_icon),
         ) {
-            MoniCopyApp(onClose = ::exitApplication) { viewModel, navigationState ->
+            MoniCopyApp { viewModel, navigationState ->
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 with(Desktop.getDesktop()) {
                     LaunchedEffect(Unit) {

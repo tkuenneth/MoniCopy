@@ -13,7 +13,6 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun MoniCopyApp(
-    onClose: () -> Unit,
     platformContent: @Composable (AppViewModel, NavigationState) -> Unit = { _, _ -> },
 ) {
     val appViewModel: AppViewModel = koinViewModel()
@@ -27,7 +26,6 @@ fun MoniCopyApp(
             uiState = copyUiState,
             viewModel = copyViewModel,
             navigationState = navigationState,
-            onClose = onClose,
         )
         platformContent(appViewModel, navigationState)
     }
