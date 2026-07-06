@@ -14,13 +14,10 @@ import com.thomaskuenneth.monicopy.generated.resources.title
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import com.thomaskuenneth.monicopy.app.AppViewModel
-import com.thomaskuenneth.monicopy.app.DialogVisibility
 import com.thomaskuenneth.monicopy.di.initKoin
 import com.thomaskuenneth.monicopy.di.jvmModule
-import com.thomaskuenneth.monicopy.ui.AboutWindow
 import com.thomaskuenneth.monicopy.ui.MoniCopyApp
 import com.thomaskuenneth.monicopy.ui.MoniCopyMenuBar
-import com.thomaskuenneth.monicopy.ui.SettingsWindow
 import java.awt.Desktop
 import java.io.File
 import java.io.IOException
@@ -58,15 +55,6 @@ fun main() {
                     exit = ::exitApplication,
                     showAbout = { viewModel.setShouldShowAbout(true) },
                     showSettings = { viewModel.setShouldShowSettings(true) },
-                )
-                AboutWindow(
-                    visible = uiState.aboutVisibility == DialogVisibility.Visible,
-                    onCloseRequest = { viewModel.setShouldShowAbout(false) },
-                )
-                SettingsWindow(
-                    visible = uiState.settingsVisibility == DialogVisibility.Visible,
-                    viewModel = viewModel,
-                    onCloseRequest = { viewModel.setShouldShowSettings(false) },
                 )
             }
         }

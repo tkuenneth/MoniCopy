@@ -6,13 +6,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-enum class DialogVisibility {
+enum class SheetVisibility {
     Hidden, Visible,
 }
 
 data class AppUiState(
-    val aboutVisibility: DialogVisibility = DialogVisibility.Hidden,
-    val settingsVisibility: DialogVisibility = DialogVisibility.Hidden,
+    val aboutVisibility: SheetVisibility = SheetVisibility.Hidden,
+    val settingsVisibility: SheetVisibility = SheetVisibility.Hidden,
     val colorSchemeMode: ColorSchemeMode = ColorSchemeMode.System,
     val showExtendedAboutDialog: Boolean = false,
 )
@@ -33,9 +33,9 @@ class AppViewModel(
         _uiState.update { state ->
             state.copy(
                 aboutVisibility = if (shouldShowAbout) {
-                    DialogVisibility.Visible
+                    SheetVisibility.Visible
                 } else {
-                    DialogVisibility.Hidden
+                    SheetVisibility.Hidden
                 },
             )
         }
@@ -45,9 +45,9 @@ class AppViewModel(
         _uiState.update { state ->
             state.copy(
                 settingsVisibility = if (shouldShowSettings) {
-                    DialogVisibility.Visible
+                    SheetVisibility.Visible
                 } else {
-                    DialogVisibility.Hidden
+                    SheetVisibility.Hidden
                 },
             )
         }

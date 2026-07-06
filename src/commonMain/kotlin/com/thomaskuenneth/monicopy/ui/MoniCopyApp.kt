@@ -27,6 +27,10 @@ fun MoniCopyApp(
             viewModel = copyViewModel,
             navigationState = navigationState,
         )
+        AppBottomSheets(
+            appViewModel = appViewModel,
+            appUiState = appUiState,
+        )
         platformContent(appViewModel, navigationState)
     }
 }
