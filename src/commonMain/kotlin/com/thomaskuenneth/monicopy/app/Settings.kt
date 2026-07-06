@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.thomaskuenneth.monicopy.generated.resources.*
 import com.thomaskuenneth.monicopy.ui.CheckboxWithLabel
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_HORIZONTAL_PADDING
@@ -17,10 +15,10 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun Settings(
+    uiState: AppUiState,
     viewModel: AppViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val onClick: (ColorSchemeMode) -> Unit = { viewModel.setColorSchemeMode(it) }
     Column(
         modifier = modifier.padding(
