@@ -29,8 +29,15 @@ class JvmCopyEngine : CopyEngine, Pausable {
     private val mdTo = MD5()
     private val sbTo = StringBuilder()
     private val lock = Any()
+    @Volatile
+    private var cancelled = false
 
     override var copyStateProvider: () -> CopyState = { CopyState.IDLE }
+
+    override fun cancel() {
+        cancelled = true
+        resume()
+    }
 
     override fun resume() {
         synchronized(lock) {
@@ -40,6 +47,7 @@ class JvmCopyEngine : CopyEngine, Pausable {
     }
 
     override fun checkForPause() {
+        if (cancelled) throw CopyCancelledException()
         synchronized(lock) {
             val state = copyStateProvider()
             if (state == CopyState.COPY_PAUSED || state == CopyState.DELETE_PAUSED) {
@@ -70,6 +78,14 @@ class JvmCopyEngine : CopyEngine, Pausable {
     }
 
     private fun copy(from: File, to: File, ignores: List<String>, onMessage: (String) -> Unit) {
+        cancelled = false
+        try {
+            copyInternal(from, to, ignores, onMessage)
+        } catch (_: CopyCancelledException) {
+        }
+    }
+
+    private fun copyInternal(from: File, to: File, ignores: List<String>, onMessage: (String) -> Unit) {
         val offset = from.absolutePath.length + 1
         onMessage(blockingGetString(Res.string.started_copying))
         onMessage(blockingGetString(Res.string.find_files))
@@ -124,6 +140,14 @@ class JvmCopyEngine : CopyEngine, Pausable {
     }
 
     private fun deleteOrphans(sourceDir: File, destDir: File, ignores: List<String>, onMessage: (String) -> Unit) {
+        cancelled = false
+        try {
+            deleteOrphansInternal(sourceDir, destDir, ignores, onMessage)
+        } catch (_: CopyCancelledException) {
+        }
+    }
+
+    private fun deleteOrphansInternal(sourceDir: File, destDir: File, ignores: List<String>, onMessage: (String) -> Unit) {
         var offset = destDir.absolutePath.length
         onMessage(blockingGetString(Res.string.started_deleting))
         val store = FileStore(this)

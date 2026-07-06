@@ -196,7 +196,7 @@ private fun IgnoredDirectoriesPane(
             }
             Column(
                 modifier = Modifier.width(120.dp).fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(UIConstants.SMALL_VERTICAL_PADDING),
             ) {
                 OutlinedButton(
                     onClick = viewModel::addIgnore,

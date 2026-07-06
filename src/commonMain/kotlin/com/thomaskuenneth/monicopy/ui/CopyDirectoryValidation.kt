@@ -28,15 +28,43 @@ fun DirectoryValidationResult.warningMessage(): String = when (issue) {
     DirectoryValidationIssue.Overlap -> stringResource(Res.string.no_overlap)
 }
 
+enum class ActionButtonLabel {
+    Start, Pause, Continue, Close,
+}
+
+fun CopyState.toActionButtonLabel(): ActionButtonLabel = when (this) {
+    CopyState.IDLE -> ActionButtonLabel.Start
+    CopyState.COPYING, CopyState.DELETING -> ActionButtonLabel.Pause
+    CopyState.COPY_PAUSED, CopyState.DELETE_PAUSED -> ActionButtonLabel.Continue
+    CopyState.FINISHED -> ActionButtonLabel.Close
+}
+
 @Composable
-fun actionButtonText(copyState: CopyState): String = stringResource(
-    when (copyState) {
-        CopyState.IDLE -> Res.string.start
-        CopyState.COPYING, CopyState.DELETING -> Res.string.pause
-        CopyState.COPY_PAUSED, CopyState.DELETE_PAUSED -> Res.string.action_continue
-        CopyState.FINISHED -> Res.string.close
+fun actionButtonText(label: ActionButtonLabel): String = stringResource(
+    when (label) {
+        ActionButtonLabel.Start -> Res.string.start
+        ActionButtonLabel.Pause -> Res.string.pause
+        ActionButtonLabel.Continue -> Res.string.action_continue
+        ActionButtonLabel.Close -> Res.string.close
     },
 )
 
 fun DirectoryValidationResult.isActionButtonEnabled(copyState: CopyState): Boolean =
     canProceed || copyState != CopyState.IDLE
+
+sealed interface ActionBarState {
+    data object Setup : ActionBarState
+    data object InProgress : ActionBarState
+    data object Finished : ActionBarState
+}
+
+fun CopyState.toActionBarState(): ActionBarState = when (this) {
+    CopyState.IDLE -> ActionBarState.Setup
+    CopyState.FINISHED -> ActionBarState.Finished
+    CopyState.COPYING, CopyState.COPY_PAUSED, CopyState.DELETING, CopyState.DELETE_PAUSED -> ActionBarState.InProgress
+}
+
+fun CopyState.toInProgressCopyState(): CopyState = when (this) {
+    CopyState.COPY_PAUSED, CopyState.DELETE_PAUSED, CopyState.DELETING -> this
+    else -> CopyState.COPYING
+}

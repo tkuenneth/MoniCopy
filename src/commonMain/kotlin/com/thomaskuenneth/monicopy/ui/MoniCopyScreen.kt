@@ -1,15 +1,24 @@
 package com.thomaskuenneth.monicopy.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.thomaskuenneth.monicopy.DirectoryValidationResult
 import com.thomaskuenneth.monicopy.NavigationState
+import com.thomaskuenneth.monicopy.copy.CopyState
 import com.thomaskuenneth.monicopy.copy.CopyUiState
 import com.thomaskuenneth.monicopy.copy.CopyViewModel
+import com.thomaskuenneth.monicopy.generated.resources.Res
+import com.thomaskuenneth.monicopy.generated.resources.cancel
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MoniCopyScreen(
@@ -33,6 +42,7 @@ fun MoniCopyScreen(
                 Crossfade(
                     targetState = uiState.isOperationMode,
                     modifier = Modifier.fillMaxSize(),
+                    animationSpec = MoniCopyAnimations.crossfadeSpec,
                     label = "mainPane",
                 ) { isOperationMode ->
                     when (isOperationMode) {
@@ -48,19 +58,72 @@ fun MoniCopyScreen(
                     }
                 }
             }
-            Row(
+            AnimatedContent(
+                targetState = uiState.copyState.toActionBarState(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = UIConstants.PREFERRED_VERTICAL_PADDING),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Button(
-                    onClick = { viewModel.onActionButtonClick(onClose) },
-                    enabled = validation.isActionButtonEnabled(uiState.copyState),
+                    .padding(vertical = UIConstants.PREFERRED_VERTICAL_PADDING)
+                    .animateContentSize(),
+                transitionSpec = { MoniCopyAnimations.fadeTransition() },
+                label = "actionBar",
+            ) { actionBarState ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        UIConstants.PREFERRED_HORIZONTAL_PADDING,
+                        Alignment.CenterHorizontally,
+                    ),
                 ) {
-                    Text(actionButtonText(uiState.copyState))
+                    when (actionBarState) {
+                        ActionBarState.Setup -> {
+                            PrimaryActionButton(
+                                copyState = CopyState.IDLE,
+                                validation = validation,
+                                onClick = { viewModel.onActionButtonClick(onClose) },
+                            )
+                        }
+
+                        ActionBarState.InProgress -> {
+                            OutlinedButton(onClick = viewModel::cancelOperation) {
+                                Text(stringResource(Res.string.cancel))
+                            }
+                            PrimaryActionButton(
+                                copyState = uiState.copyState.toInProgressCopyState(),
+                                validation = validation,
+                                onClick = { viewModel.onActionButtonClick(onClose) },
+                            )
+                        }
+
+                        ActionBarState.Finished -> {
+                            PrimaryActionButton(
+                                copyState = CopyState.FINISHED,
+                                validation = validation,
+                                onClick = { viewModel.onActionButtonClick(onClose) },
+                            )
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PrimaryActionButton(
+    copyState: CopyState,
+    validation: DirectoryValidationResult,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        enabled = validation.isActionButtonEnabled(copyState),
+    ) {
+        AnimatedContent(
+            targetState = copyState.toActionButtonLabel(),
+            transitionSpec = { MoniCopyAnimations.fadeTransition() },
+            label = "primaryActionLabel",
+        ) { label ->
+            Text(actionButtonText(label))
         }
     }
 }

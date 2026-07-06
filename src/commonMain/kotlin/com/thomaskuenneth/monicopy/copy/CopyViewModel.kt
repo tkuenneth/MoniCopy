@@ -113,6 +113,16 @@ class CopyViewModel(
         }
     }
 
+    fun cancelOperation() {
+        when (_uiState.value.copyState) {
+            CopyState.COPYING, CopyState.COPY_PAUSED, CopyState.DELETING, CopyState.DELETE_PAUSED -> {
+                mutate { it.copy(copyState = CopyState.IDLE, logMessages = emptyList()) }
+                engine.cancel()
+            }
+            CopyState.IDLE, CopyState.FINISHED -> Unit
+        }
+    }
+
     fun onActionButtonClick(onFinished: () -> Unit) {
         when (_uiState.value.copyState) {
             CopyState.IDLE -> {
@@ -122,6 +132,7 @@ class CopyViewModel(
                 viewModelScope.launch(Dispatchers.Default) {
                     val ignores = _uiState.value.ignores.map { it.absolutePath }
                     engine.copy(from, to, ignores, ::appendLog)
+                    if (_uiState.value.copyState == CopyState.IDLE) return@launch
                     nextStep(onFinished)
                 }
             }
@@ -171,23 +182,39 @@ class CopyViewModel(
     }
 
     private fun nextStep(onFinished: () -> Unit) {
+        if (_uiState.value.copyState == CopyState.IDLE) return
         when (_uiState.value.copyState) {
             CopyState.COPYING -> {
                 if (_uiState.value.deleteOrphans) {
                     val from = _uiState.value.sourceDir ?: return
                     val to = _uiState.value.destDir ?: return
-                    mutate { it.copy(copyState = CopyState.DELETING) }
+                    var shouldDelete = false
+                    mutate { state ->
+                        if (state.copyState == CopyState.IDLE) state
+                        else {
+                            shouldDelete = true
+                            state.copy(copyState = CopyState.DELETING)
+                        }
+                    }
+                    if (!shouldDelete) return
                     viewModelScope.launch(Dispatchers.Default) {
                         val ignores = _uiState.value.ignores.map { it.absolutePath }
                         engine.deleteOrphans(from, to, ignores, ::appendLog)
+                        if (_uiState.value.copyState == CopyState.IDLE) return@launch
                         nextStep(onFinished)
                     }
                 } else {
-                    mutate { it.copy(copyState = CopyState.FINISHED) }
+                    mutate { state ->
+                        if (state.copyState == CopyState.IDLE) state
+                        else state.copy(copyState = CopyState.FINISHED)
+                    }
                 }
             }
             CopyState.DELETING -> {
-                mutate { it.copy(copyState = CopyState.FINISHED) }
+                mutate { state ->
+                    if (state.copyState == CopyState.IDLE) state
+                    else state.copy(copyState = CopyState.FINISHED)
+                }
             }
             else -> Unit
         }
