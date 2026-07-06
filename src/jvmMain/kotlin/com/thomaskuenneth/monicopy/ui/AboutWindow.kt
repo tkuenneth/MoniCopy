@@ -5,9 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.FrameWindowScope
-import androidx.compose.ui.window.rememberDialogState
+import androidx.compose.ui.window.Window
 import com.thomaskuenneth.monicopy.app.About
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.about_short
@@ -18,8 +17,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun FrameWindowScope.AboutWindow(visible: Boolean, onCloseRequest: () -> Unit) {
     if (visible) {
-        DialogWindow(
-            state = rememberDialogState(position = getCenteredPosition()),
+        Window(
+            state = rememberCenteredWindowState(),
             onCloseRequest = onCloseRequest,
             icon = painterResource(Res.drawable.app_icon),
             resizable = false,
