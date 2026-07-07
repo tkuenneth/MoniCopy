@@ -3,9 +3,9 @@ import java.io.*
 import java.util.*
 
 plugins {
-    kotlin("multiplatform")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("org.jetbrains.compose")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.compose)
 }
 
 group = "com.thomaskuenneth.monicopy"
@@ -33,27 +33,28 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(compose.components.resources)
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                implementation(compose.animation)
-                implementation(compose.material3)
-                implementation(compose.ui)
-                implementation("io.insert-koin:koin-core:4.1.1")
-                implementation("io.insert-koin:koin-compose:4.1.1")
-                implementation("io.insert-koin:koin-compose-viewmodel:4.1.1")
-                implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
-                implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-                implementation("org.jetbrains.compose.material3.adaptive:adaptive:1.2.0")
-                implementation("org.jetbrains.compose.material3.adaptive:adaptive-layout:1.2.0")
-                implementation("org.jetbrains.compose.material3.adaptive:adaptive-navigation:1.2.0")
+                implementation(libs.compose.components.resources)
+                implementation(libs.compose.runtime)
+                implementation(libs.compose.foundation)
+                implementation(libs.compose.animation)
+                implementation(libs.compose.material3)
+                implementation(libs.compose.ui)
+                implementation(project.dependencies.platform(libs.koin.bom))
+                implementation(libs.koin.core)
+                implementation(libs.koin.compose)
+                implementation(libs.koin.compose.viewmodel)
+                implementation(libs.lifecycle.viewmodel.compose)
+                implementation(libs.lifecycle.runtime.compose)
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.compose.adaptive)
+                implementation(libs.compose.adaptive.layout)
+                implementation(libs.compose.adaptive.navigation)
             }
         }
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.1")
+                implementation(libs.kotlinx.coroutines.swing)
             }
         }
         val jvmTest by getting
