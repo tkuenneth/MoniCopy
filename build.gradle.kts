@@ -18,6 +18,7 @@ if (file.isFile) {
     }
 } else error("${file.absolutePath} not found")
 version = properties.getProperty("VERSION")
+val isMacOs = System.getProperty("os.name").contains("Mac", ignoreCase = true)
 
 repositories {
     google()
@@ -80,9 +81,11 @@ compose.resources {
 compose.desktop {
     application {
         mainClass = "com.thomaskuenneth.monicopy.MainKt"
-        jvmArgs(
-            "-Xdock:icon=${project.file("src/commonMain/composeResources/drawable/app_icon.png").absolutePath}",
-        )
+        if (isMacOs) {
+            jvmArgs(
+                "-Xdock:icon=${project.file("src/commonMain/composeResources/drawable/app_icon.png").absolutePath}",
+            )
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "MoniCopy"
