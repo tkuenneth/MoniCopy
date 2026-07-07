@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose)
+    alias(libs.plugins.koin.compiler)
 }
 
 group = "com.thomaskuenneth.monicopy"
@@ -21,10 +22,12 @@ version = properties.getProperty("VERSION")
 repositories {
     google()
     mavenCentral()
-    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 }
 
 kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
     jvm {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -41,6 +44,8 @@ kotlin {
                 implementation(libs.compose.ui)
                 implementation(project.dependencies.platform(libs.koin.bom))
                 implementation(libs.koin.core)
+                implementation(libs.koin.core.viewmodel)
+                implementation(libs.koin.annotations)
                 implementation(libs.koin.compose)
                 implementation(libs.koin.compose.viewmodel)
                 implementation(libs.lifecycle.viewmodel.compose)
@@ -75,6 +80,9 @@ compose.resources {
 compose.desktop {
     application {
         mainClass = "com.thomaskuenneth.monicopy.MainKt"
+        jvmArgs(
+            "-Xdock:icon=${project.file("src/commonMain/composeResources/drawable/app_icon.png").absolutePath}",
+        )
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "MoniCopy"

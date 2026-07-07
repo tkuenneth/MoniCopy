@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.*
 import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
@@ -45,7 +45,7 @@ fun SetupPane(
 ) {
     val navigator = rememberSupportingPaneScaffoldNavigator(
         scaffoldDirective = calculatePaneScaffoldDirective(
-            windowAdaptiveInfo = currentWindowAdaptiveInfo(),
+            windowAdaptiveInfo = currentWindowAdaptiveInfoV2(),
             verticalHingePolicy = HingePolicy.AlwaysAvoid,
         ),
     )

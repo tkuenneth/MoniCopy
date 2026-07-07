@@ -1,4 +1,4 @@
-package com.thomaskuenneth.monicopy.copy
+package com.thomaskuenneth.monicopy.jvm.copy
 
 import com.thomaskuenneth.monicopy.FileCopier
 import com.thomaskuenneth.monicopy.FileStore
@@ -6,6 +6,9 @@ import com.thomaskuenneth.monicopy.FolderMap
 import com.thomaskuenneth.monicopy.MD5
 import com.thomaskuenneth.monicopy.Pausable
 import com.thomaskuenneth.monicopy.blockingGetString
+import com.thomaskuenneth.monicopy.copy.CopyCancelledException
+import com.thomaskuenneth.monicopy.copy.CopyEngine
+import com.thomaskuenneth.monicopy.copy.CopyState
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.could_not_copy
 import com.thomaskuenneth.monicopy.generated.resources.could_not_delete
@@ -16,10 +19,12 @@ import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
 import com.thomaskuenneth.monicopy.generated.resources.number_of_files_and_directories
 import com.thomaskuenneth.monicopy.generated.resources.started_copying
 import com.thomaskuenneth.monicopy.generated.resources.started_deleting
+import org.koin.core.annotation.Single
 import java.io.File
 import java.util.logging.Level
 import java.util.logging.Logger
 
+@Single
 class JvmCopyEngine : CopyEngine, Pausable {
 
     private val logger = Logger.getGlobal()

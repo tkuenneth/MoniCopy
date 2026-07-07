@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import org.koin.core.annotation.KoinViewModel
 
 enum class SheetVisibility {
     Hidden, Visible,
@@ -23,6 +24,7 @@ data class AppUiState(
     val showExtendedAboutDialog: Boolean = false,
 )
 
+@KoinViewModel
 class AppViewModel(
     private val repository: AppRepository,
     platformInfo: PlatformInfo,

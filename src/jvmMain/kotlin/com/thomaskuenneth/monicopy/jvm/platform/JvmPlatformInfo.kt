@@ -1,7 +1,11 @@
-package com.thomaskuenneth.monicopy.platform
+package com.thomaskuenneth.monicopy.jvm.platform
 
+import com.thomaskuenneth.monicopy.platform.OperatingSystem
+import com.thomaskuenneth.monicopy.platform.PlatformInfo
+import org.koin.core.annotation.Single
 import java.util.ResourceBundle
 
+@Single
 class JvmPlatformInfo : PlatformInfo {
     override val platformName: String = buildString {
         append(System.getProperty("os.name") ?: "")

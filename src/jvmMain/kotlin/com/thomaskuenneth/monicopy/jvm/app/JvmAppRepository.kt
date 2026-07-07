@@ -1,9 +1,14 @@
-package com.thomaskuenneth.monicopy.app
+package com.thomaskuenneth.monicopy.jvm.app
+
+import com.thomaskuenneth.monicopy.app.AppRepository
+import com.thomaskuenneth.monicopy.app.ColorSchemeMode
+import org.koin.core.annotation.Single
 import java.util.prefs.Preferences
 
 private const val KEY_COLOR_SCHEME_MODE = "colorSchemeMode"
 private const val KEY_SHOW_EXTENDED_ABOUT_DIALOG = "showExtendedAboutDialog"
 
+@Single
 class JvmAppRepository : AppRepository {
     private val prefs = Preferences.userNodeForPackage(JvmAppRepository::class.java)
 

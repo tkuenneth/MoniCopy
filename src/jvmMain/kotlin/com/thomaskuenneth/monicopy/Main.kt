@@ -8,8 +8,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.thomaskuenneth.monicopy.app.AppViewModel
-import com.thomaskuenneth.monicopy.di.initKoin
-import com.thomaskuenneth.monicopy.di.jvmModule
+import com.thomaskuenneth.monicopy.di.MoniCopyKoinApp
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.app_icon
 import com.thomaskuenneth.monicopy.generated.resources.title
@@ -18,6 +17,7 @@ import com.thomaskuenneth.monicopy.ui.MoniCopyMenuBar
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.plugin.module.dsl.startKoin
 import java.awt.Desktop
 import java.io.File
 import java.io.IOException
@@ -27,9 +27,8 @@ import java.util.logging.SimpleFormatter
 
 fun main() {
     setupLogging()
-    setupDockIcon()
+    startKoin<MoniCopyKoinApp>()
     application {
-        initKoin(jvmModule) {}
         Window(
             onCloseRequest = ::exitApplication,
             state = rememberWindowState(width = 720.dp, height = 480.dp),

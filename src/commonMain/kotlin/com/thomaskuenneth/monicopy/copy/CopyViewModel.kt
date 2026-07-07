@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
 
 enum class CopyState {
     IDLE, COPYING, COPY_PAUSED, DELETING, DELETE_PAUSED, FINISHED
@@ -36,6 +37,7 @@ data class CopyUiState(
         get() = copyState != CopyState.IDLE
 }
 
+@KoinViewModel
 class CopyViewModel(
     private val engine: CopyEngine,
     private val repository: CopyRepository,

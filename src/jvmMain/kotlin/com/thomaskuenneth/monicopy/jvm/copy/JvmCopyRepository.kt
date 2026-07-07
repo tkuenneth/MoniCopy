@@ -1,8 +1,12 @@
-package com.thomaskuenneth.monicopy.copy
+package com.thomaskuenneth.monicopy.jvm.copy
 
+import com.thomaskuenneth.monicopy.copy.CopyPreferences
+import com.thomaskuenneth.monicopy.copy.CopyRepository
+import org.koin.core.annotation.Single
 import java.io.File
 import java.util.prefs.Preferences
 
+@Single
 class JvmCopyRepository : CopyRepository {
     private val prefs = Preferences.userNodeForPackage(JvmCopyRepository::class.java)
 

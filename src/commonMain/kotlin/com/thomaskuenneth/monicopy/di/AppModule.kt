@@ -1,11 +1,11 @@
 package com.thomaskuenneth.monicopy.di
 
-import com.thomaskuenneth.monicopy.app.AppViewModel
-import com.thomaskuenneth.monicopy.copy.CopyViewModel
-import org.koin.core.module.dsl.viewModelOf
-import org.koin.dsl.module
+import org.koin.core.annotation.ComponentScan
+import org.koin.core.annotation.Module
 
-val appModule = module {
-    viewModelOf(::AppViewModel)
-    viewModelOf(::CopyViewModel)
-}
+@Module(includes = [JvmDiModule::class])
+@ComponentScan(
+    "com.thomaskuenneth.monicopy.app",
+    "com.thomaskuenneth.monicopy.copy",
+)
+class AppModule
