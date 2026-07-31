@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.artwork_no_background
 import com.thomaskuenneth.monicopy.generated.resources.title
-import com.thomaskuenneth.monicopy.app.AppUiState
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_HORIZONTAL_PADDING
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_VERTICAL_PADDING
 import org.jetbrains.compose.resources.painterResource
@@ -43,7 +42,7 @@ fun About(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = uiState.appVersion,
+            text = "${uiState.appVersion} (${uiState.appBuildVersion})",
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(

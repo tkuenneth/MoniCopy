@@ -1,0 +1,131 @@
+name: Create release
+on:
+  workflow_dispatch:
+
+jobs:
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+      - name: Read version from project
+        id: version
+        run: |
+          VERSION=$(grep '^VERSION=' src/main/resources/version.properties | cut -d= -f2 | tr -d '[:space:]')
+          if [ -z "$VERSION" ]; then
+            echo "VERSION not found in src/main/resources/version.properties" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Using version $VERSION (tag v$VERSION)"
+
+  create-windows-installer:
+    runs-on: windows-latest
+    needs: resolve-version
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: 17
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Run packageReleaseMsi with Gradle Wrapper
+        run: ./gradlew packageReleaseMsi
+      - run: Compress-Archive -Path ./build/compose/binaries/main-release/msi/*.msi -Destination ./monicopy_windows.zip
+      - name: Upload asset
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./monicopy_windows.zip
+          name: monicopy_windows.zip
+
+  create-macos-installer:
+    runs-on: macos-latest
+    needs: resolve-version
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: 17
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Setup keychain, certificates and passwords
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+          security create-keychain -p ${{ secrets.KEYCHAIN_PASSWORD }} build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p ${{ secrets.KEYCHAIN_PASSWORD }} build.keychain
+          security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PASSWORD -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${{ secrets.KEYCHAIN_PASSWORD }} build.keychain
+      - name: Run createReleaseDistributable with Gradle Wrapper
+        run: ./gradlew createReleaseDistributable
+      - name: Notarize app bundle
+        env:
+          PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_APPLE_ID }}
+          PROD_MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_TEAM_ID }}
+          PROD_MACOS_NOTARIZATION_PWD: ${{ secrets.PROD_MACOS_NOTARIZATION_PWD }}
+        run: |
+          security unlock-keychain -p ${{ secrets.KEYCHAIN_PASSWORD }} build.keychain
+          PATH_TO_APP=/Users/runner/work/MoniCopy/MoniCopy/build/compose/binaries/main-release/app/MoniCopy.app
+          echo "Create keychain profile"
+          xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
+          echo "Creating temp notarization archive"
+          ditto -c -k --keepParent "$PATH_TO_APP" "notarization.zip"
+          echo "Notarize app"
+          xcrun notarytool submit "notarization.zip" --keychain-profile "notarytool-profile" --wait
+          echo "Attach staple"
+          xcrun stapler staple "$PATH_TO_APP"
+          echo "Create .dmg"
+          mkdir dmg
+          cp -R "$PATH_TO_APP" dmg
+          cd dmg
+          ln -s /Applications/ Applications
+          cd ..
+          hdiutil create -volname MoniCopy -srcfolder dmg -ov -format UDZO MoniCopy.dmg
+          ditto -c -k MoniCopy.dmg /Users/runner/work/MoniCopy/MoniCopy/monicopy_macos.zip
+      - name: Upload asset
+        uses: actions/upload-artifact@v4
+        with:
+          path: /Users/runner/work/MoniCopy/MoniCopy/monicopy_macos.zip
+          name: monicopy_macos.zip
+
+  create-release:
+    runs-on: macos-latest
+    needs: [resolve-version, create-windows-installer, create-macos-installer]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+      - name: Download dmg
+        uses: actions/download-artifact@v4
+        with:
+          name: monicopy_macos.zip
+      - name: Download msi
+        uses: actions/download-artifact@v4
+        with:
+          name: monicopy_windows.zip
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "monicopy_windows.zip,monicopy_macos.zip"
+          tag: ${{ needs.resolve-version.outputs.tag }}
+          name: MoniCopy ${{ needs.resolve-version.outputs.version }}
+          commit: ${{ github.sha }}
+          bodyFile: whatsnew.md

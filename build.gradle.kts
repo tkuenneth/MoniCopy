@@ -18,6 +18,9 @@ if (file.isFile) {
     }
 } else error("${file.absolutePath} not found")
 version = properties.getProperty("VERSION")
+    ?: error("VERSION not found in ${file.absolutePath}")
+val buildVersion = properties.getProperty("BUILD_VERSION")
+    ?: error("BUILD_VERSION not found in ${file.absolutePath}")
 val isMacOs = System.getProperty("os.name").contains("Mac", ignoreCase = true)
 
 repositories {
@@ -78,6 +81,11 @@ compose.desktop {
             macOS {
                 bundleID = "com.thomaskuenneth.monicopy"
                 iconFile.set(project.file("artwork/MoniCopy.icns"))
+                packageBuildVersion = buildVersion
+                signing {
+                    sign.set(true)
+                    identity.set("Thomas Kuenneth")
+                }
             }
             windows {
                 iconFile.set(project.file("artwork/MoniCopy.ico"))

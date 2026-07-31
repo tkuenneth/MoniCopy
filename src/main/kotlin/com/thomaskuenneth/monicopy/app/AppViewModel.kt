@@ -16,6 +16,7 @@ enum class SheetVisibility {
 data class AppUiState(
     val platformName: String,
     val appVersion: String,
+    val appBuildVersion: String,
     val operatingSystem: OperatingSystem,
     val showExtendedAboutDialogCheckbox: Boolean,
     val aboutVisibility: SheetVisibility = SheetVisibility.Hidden,
@@ -34,6 +35,7 @@ class AppViewModel(
         AppUiState(
             platformName = platformInfo.platformName,
             appVersion = platformInfo.appVersion,
+            appBuildVersion = platformInfo.appBuildVersion,
             operatingSystem = platformInfo.operatingSystem,
             showExtendedAboutDialogCheckbox = platformInfo.showExtendedAboutDialogCheckbox,
             colorSchemeMode = repository.getColorSchemeMode(),

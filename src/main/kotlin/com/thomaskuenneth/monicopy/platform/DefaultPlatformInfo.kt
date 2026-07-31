@@ -5,6 +5,8 @@ import java.util.ResourceBundle
 
 @Single
 class DefaultPlatformInfo : PlatformInfo {
+    private val versionBundle = ResourceBundle.getBundle("version")
+
     override val platformName: String = buildString {
         append(System.getProperty("os.name") ?: "")
         append(' ')
@@ -18,7 +20,9 @@ class DefaultPlatformInfo : PlatformInfo {
         append(')')
     }
 
-    override val appVersion: String = ResourceBundle.getBundle("version").getString("VERSION")
+    override val appVersion: String = versionBundle.getString("VERSION")
+
+    override val appBuildVersion: String = versionBundle.getString("BUILD_VERSION")
 
     override val operatingSystem: OperatingSystem = when {
         platformName.contains("mac os x", ignoreCase = true) -> OperatingSystem.MacOS
