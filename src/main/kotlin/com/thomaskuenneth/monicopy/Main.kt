@@ -7,6 +7,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowSizeClass
 import com.thomaskuenneth.monicopy.app.AppViewModel
 import com.thomaskuenneth.monicopy.di.MoniCopyKoinApp
 import com.thomaskuenneth.monicopy.generated.resources.Res
@@ -31,7 +32,10 @@ fun main() {
     application {
         Window(
             onCloseRequest = ::exitApplication,
-            state = rememberWindowState(width = 720.dp, height = 480.dp),
+            state = rememberWindowState(
+                width = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp,
+                height = WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp,
+            ),
             icon = painterResource(Res.drawable.app_icon),
         ) {
             val appViewModel: AppViewModel = koinViewModel()
