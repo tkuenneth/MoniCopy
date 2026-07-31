@@ -1,6 +1,6 @@
 # Welcome
 
-MoniCopy is an easy-to-use folder copy app built with Kotlin Multiplatform and Compose Desktop. The app is released under the Apache-2.0 License. Its usage is quite simple:
+*MoniCopy* is an easy-to-use folder copy app for macOS and Windows built with Kotlin and Compose Desktop. The app is released under the Apache-2.0 License. Its usage is quite simple:
 
 - Pick source and destination directories
 - Decide if you want to keep orphans (files that were once there, but no longer are)
@@ -9,6 +9,6 @@ MoniCopy is an easy-to-use folder copy app built with Kotlin Multiplatform and C
 
 MoniCopy only copies new and changed files.
 
-![Screenshot of MoniCopy](./screenshots/2020-12-05.png) 
+<img src="./screenshots/macos.png" alt="Screenshot of MoniCopy" width="30%" /> 
 
 **Please note** that MoniCopy cannot access files that are currently in use.

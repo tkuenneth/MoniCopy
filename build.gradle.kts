@@ -83,7 +83,13 @@ compose.desktop {
                 iconFile.set(project.file("artwork/MoniCopy.icns"))
                 packageBuildVersion = buildVersion
                 signing {
-                    sign.set(true)
+                    // Local runDistributable stays unsigned (multiple Developer ID
+                    // certs in login). GitHub Actions sets CI=true and signs there.
+                    sign.set(
+                        providers.environmentVariable("CI")
+                            .map { it == "true" }
+                            .orElse(false)
+                    )
                     identity.set("Thomas Kuenneth")
                 }
             }
