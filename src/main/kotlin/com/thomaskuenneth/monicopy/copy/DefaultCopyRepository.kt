@@ -1,15 +1,15 @@
-package com.thomaskuenneth.monicopy.jvm.copy
+package com.thomaskuenneth.monicopy.copy
 
-import com.thomaskuenneth.monicopy.copy.CopyPreferences
-import com.thomaskuenneth.monicopy.copy.CopyRepository
 import org.koin.core.annotation.Single
 import java.io.File
 import java.util.prefs.Preferences
 
-@Single
-class JvmCopyRepository : CopyRepository {
-    private val prefs = Preferences.userNodeForPackage(JvmCopyRepository::class.java)
+// Keep former jvm.copy Preferences node so existing installs retain settings.
+private val prefs: Preferences =
+    Preferences.userRoot().node("com/thomaskuenneth/monicopy/jvm/copy")
 
+@Single
+class DefaultCopyRepository : CopyRepository {
     override fun load(): CopyPreferences {
         val ignores = prefs.get(KEY_IGNORES, "").split("\n")
             .filter { it.isNotEmpty() && File(it).isDirectory }

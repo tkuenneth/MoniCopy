@@ -3,7 +3,7 @@ import java.io.*
 import java.util.*
 
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose)
     alias(libs.plugins.koin.compiler)
@@ -11,7 +11,7 @@ plugins {
 
 group = "com.thomaskuenneth.monicopy"
 val properties = Properties()
-val file = rootProject.file("src/jvmMain/resources/version.properties")
+val file = rootProject.file("src/main/resources/version.properties")
 if (file.isFile) {
     InputStreamReader(FileInputStream(file), Charsets.UTF_8).use { reader ->
         properties.load(reader)
@@ -26,51 +26,33 @@ repositories {
 }
 
 kotlin {
+    jvmToolchain(17)
     compilerOptions {
-        freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
-    jvm {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        }
-    }
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(libs.compose.components.resources)
-                implementation(libs.compose.runtime)
-                implementation(libs.compose.foundation)
-                implementation(libs.compose.animation)
-                implementation(libs.compose.material3)
-                implementation(libs.compose.ui)
-                implementation(project.dependencies.platform(libs.koin.bom))
-                implementation(libs.koin.core)
-                implementation(libs.koin.core.viewmodel)
-                implementation(libs.koin.annotations)
-                implementation(libs.koin.compose)
-                implementation(libs.koin.compose.viewmodel)
-                implementation(libs.lifecycle.viewmodel.compose)
-                implementation(libs.lifecycle.runtime.compose)
-                implementation(libs.kotlinx.coroutines.core)
-                implementation(libs.compose.adaptive)
-                implementation(libs.compose.adaptive.layout)
-                implementation(libs.compose.adaptive.navigation)
-            }
-        }
-        val jvmMain by getting {
-            dependencies {
-                implementation(compose.desktop.currentOs)
-                implementation(libs.kotlinx.coroutines.swing)
-            }
-        }
-        val jvmTest by getting
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
+dependencies {
+    implementation(libs.compose.components.resources)
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.animation)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.ui)
+    implementation(project.dependencies.platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.core.viewmodel)
+    implementation(libs.koin.annotations)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.compose.adaptive)
+    implementation(libs.compose.adaptive.layout)
+    implementation(libs.compose.adaptive.navigation)
+    implementation(compose.desktop.currentOs)
+    implementation(libs.kotlinx.coroutines.swing)
 }
 
 compose.resources {
@@ -83,7 +65,7 @@ compose.desktop {
         mainClass = "com.thomaskuenneth.monicopy.MainKt"
         if (isMacOs) {
             jvmArgs(
-                "-Xdock:icon=${project.file("src/commonMain/composeResources/drawable/app_icon.png").absolutePath}",
+                "-Xdock:icon=${project.file("src/main/composeResources/drawable/app_icon.png").absolutePath}",
             )
         }
         nativeDistributions {
@@ -102,7 +84,7 @@ compose.desktop {
                 menuGroup = "Thomas Kuenneth"
             }
             linux {
-                iconFile.set(project.file("src/commonMain/composeResources/drawable/app_icon.png"))
+                iconFile.set(project.file("src/main/composeResources/drawable/app_icon.png"))
             }
         }
     }

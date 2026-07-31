@@ -1,6 +1,5 @@
-package com.thomaskuenneth.monicopy.jvm.platform
+package com.thomaskuenneth.monicopy.platform
 
-import com.thomaskuenneth.monicopy.platform.DirectoryChooser
 import org.koin.core.annotation.Single
 import java.io.File
 import java.util.concurrent.atomic.AtomicReference
@@ -9,7 +8,7 @@ import javax.swing.SwingUtilities
 import javax.swing.filechooser.FileSystemView
 
 @Single
-class JvmDirectoryChooser : DirectoryChooser {
+class SwingDirectoryChooser : DirectoryChooser {
     override fun chooseDirectory(title: String, initialPath: String?): String? {
         val initial = initialPath?.let(::File)
         if (SwingUtilities.isEventDispatchThread()) {

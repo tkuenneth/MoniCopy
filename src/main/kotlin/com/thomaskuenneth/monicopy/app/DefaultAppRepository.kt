@@ -1,17 +1,17 @@
-package com.thomaskuenneth.monicopy.jvm.app
+package com.thomaskuenneth.monicopy.app
 
-import com.thomaskuenneth.monicopy.app.AppRepository
-import com.thomaskuenneth.monicopy.app.ColorSchemeMode
 import org.koin.core.annotation.Single
 import java.util.prefs.Preferences
 
 private const val KEY_COLOR_SCHEME_MODE = "colorSchemeMode"
 private const val KEY_SHOW_EXTENDED_ABOUT_DIALOG = "showExtendedAboutDialog"
 
-@Single
-class JvmAppRepository : AppRepository {
-    private val prefs = Preferences.userNodeForPackage(JvmAppRepository::class.java)
+// Keep former jvm.app Preferences node so existing installs retain settings.
+private val prefs: Preferences =
+    Preferences.userRoot().node("com/thomaskuenneth/monicopy/jvm/app")
 
+@Single
+class DefaultAppRepository : AppRepository {
     override fun getColorSchemeMode(): ColorSchemeMode =
         ColorSchemeMode.valueOf(prefs.get(KEY_COLOR_SCHEME_MODE, ColorSchemeMode.System.name))
 
