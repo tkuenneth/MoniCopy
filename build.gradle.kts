@@ -90,7 +90,7 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "MoniCopy"
             packageVersion = version.toString()
-            description = "An easy to use folder copy app"
+            description = "An easy-to-use folder copy app"
             copyright = "2017 - 2026 Thomas Kuenneth. All rights reserved."
             vendor = "Thomas Kuenneth"
             macOS {
@@ -100,6 +100,9 @@ compose.desktop {
             windows {
                 iconFile.set(project.file("artwork/MoniCopy.ico"))
                 menuGroup = "Thomas Kuenneth"
+            }
+            linux {
+                iconFile.set(project.file("src/commonMain/composeResources/drawable/app_icon.png"))
             }
         }
     }
