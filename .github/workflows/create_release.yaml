@@ -35,7 +35,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
-          java-version: 17
+          java-version: 21
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Run packageReleaseMsi with Gradle Wrapper
@@ -59,7 +59,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
-          java-version: 17
+          java-version: 21
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Setup keychain, certificates and passwords
