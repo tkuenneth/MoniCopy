@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.compose)
     alias(libs.plugins.koin.compiler)
     alias(libs.plugins.aboutlibraries)
+    alias(libs.plugins.testballoon)
 }
 
 group = "com.thomaskuenneth.monicopy"
@@ -58,6 +59,8 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.aboutlibraries.compose.m3)
+    testImplementation(libs.testballoon.framework.core)
+    testImplementation(kotlin("test"))
 }
 
 compose.resources {
