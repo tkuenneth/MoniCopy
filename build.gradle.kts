@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose)
     alias(libs.plugins.koin.compiler)
+    alias(libs.plugins.aboutlibraries)
 }
 
 group = "com.thomaskuenneth.monicopy"
@@ -56,11 +57,23 @@ dependencies {
     implementation(libs.compose.adaptive.navigation)
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.aboutlibraries.compose.m3)
 }
 
 compose.resources {
     publicResClass = true
     packageOfResClass = "com.thomaskuenneth.monicopy.generated.resources"
+}
+
+aboutLibraries {
+    export {
+        prettyPrint = true
+        outputFile = file("src/main/composeResources/files/aboutlibraries.json")
+    }
+}
+
+tasks.named("copyNonXmlValueResourcesForMain").configure {
+    dependsOn("exportLibraryDefinitions")
 }
 
 compose.desktop {

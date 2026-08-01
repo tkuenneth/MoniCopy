@@ -21,15 +21,16 @@ import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import com.thomaskuenneth.monicopy.NavigationState
-import com.thomaskuenneth.monicopy.platform.OperatingSystem
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.about
 import com.thomaskuenneth.monicopy.generated.resources.back
 import com.thomaskuenneth.monicopy.generated.resources.file
 import com.thomaskuenneth.monicopy.generated.resources.help
+import com.thomaskuenneth.monicopy.generated.resources.open_source_licenses
 import com.thomaskuenneth.monicopy.generated.resources.quit
 import com.thomaskuenneth.monicopy.generated.resources.settings
 import com.thomaskuenneth.monicopy.generated.resources.view
+import com.thomaskuenneth.monicopy.platform.OperatingSystem
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -38,6 +39,7 @@ fun FrameWindowScope.MoniCopyMenuBar(
     navigationState: NavigationState,
     exit: () -> Unit,
     showAbout: () -> Unit,
+    showOpenSourceLicenses: () -> Unit,
     showSettings: () -> Unit,
 ) {
     MenuBar {
@@ -59,10 +61,14 @@ fun FrameWindowScope.MoniCopyMenuBar(
                 onClick = navigationState.navigateBack,
             )
         }
-        if (operatingSystem != OperatingSystem.MacOS) {
-            Menu(text = stringResource(Res.string.help)) {
+        Menu(text = stringResource(Res.string.help)) {
+            if (operatingSystem != OperatingSystem.MacOS) {
                 Item(text = stringResource(Res.string.about), onClick = showAbout)
             }
+            Item(
+                text = stringResource(Res.string.open_source_licenses),
+                onClick = showOpenSourceLicenses,
+            )
         }
     }
 }

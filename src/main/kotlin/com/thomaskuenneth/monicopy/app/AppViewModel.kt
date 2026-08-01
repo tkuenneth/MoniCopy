@@ -36,6 +36,7 @@ data class AppUiState(
     val showExtendedAboutDialogCheckbox: Boolean,
     val aboutVisibility: SheetVisibility = SheetVisibility.Hidden,
     val settingsVisibility: SheetVisibility = SheetVisibility.Hidden,
+    val openSourceLicensesVisibility: SheetVisibility = SheetVisibility.Hidden,
     val colorSchemeMode: ColorSchemeMode = ColorSchemeMode.System,
     val showExtendedAboutDialog: Boolean = false,
 )
@@ -75,6 +76,18 @@ class AppViewModel(
         _uiState.update { state ->
             state.copy(
                 settingsVisibility = if (show) {
+                    SheetVisibility.Visible
+                } else {
+                    SheetVisibility.Hidden
+                },
+            )
+        }
+    }
+
+    fun showOpenSourceLicenses(show: Boolean) {
+        _uiState.update { state ->
+            state.copy(
+                openSourceLicensesVisibility = if (show) {
                     SheetVisibility.Visible
                 } else {
                     SheetVisibility.Hidden

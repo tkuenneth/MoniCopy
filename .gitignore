@@ -43,3 +43,6 @@ bin/
 ### Mac OS ###
 .DS_Store
 *.p12
+
+### AboutLibraries (generated at build time) ###
+src/main/composeResources/files/aboutlibraries.json

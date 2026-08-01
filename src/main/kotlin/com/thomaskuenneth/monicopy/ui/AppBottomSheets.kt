@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import com.thomaskuenneth.monicopy.app.About
 import com.thomaskuenneth.monicopy.app.AppUiState
 import com.thomaskuenneth.monicopy.app.AppViewModel
+import com.thomaskuenneth.monicopy.app.OpenSourceLicensesSheet
 import com.thomaskuenneth.monicopy.app.SheetVisibility
 import com.thomaskuenneth.monicopy.app.Settings
 
@@ -46,6 +47,11 @@ fun AppBottomSheets(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+    if (appUiState.openSourceLicensesVisibility == SheetVisibility.Visible) {
+        OpenSourceLicensesSheet(
+            onDismiss = { appViewModel.showOpenSourceLicenses(false) },
+        )
     }
 }
 

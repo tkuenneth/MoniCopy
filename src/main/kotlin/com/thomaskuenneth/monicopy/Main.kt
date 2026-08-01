@@ -77,6 +77,7 @@ fun main() {
                     navigationState = navigationState,
                     exit = ::exitApplication,
                     showAbout = { viewModel.showAboutSheet(true) },
+                    showOpenSourceLicenses = { viewModel.showOpenSourceLicenses(true) },
                     showSettings = { viewModel.showSettingsSheet(true) },
                 )
             }
