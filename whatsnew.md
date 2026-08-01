@@ -1,4 +1,5 @@
-# MoniCopy 1.1.0
+# MoniCopy 1.1.1
 
-- Refactored project structure
-- Automatically build releases
+- Smaller default I/O buffers and safer handling of large file lengths
+- Initial JVM heap set to 1 GB
+- Tests for buffer edges and core copy flows
