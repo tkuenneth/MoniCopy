@@ -31,7 +31,7 @@ public class FileCopier {
     private String lastLocalizedMessage = null;
 
     public FileCopier() {
-        this(64 * 1024 * 1024);
+        this(IoBuffers.DEFAULT_LENGTH);
     }
 
     public FileCopier(int bufsize) {
@@ -40,6 +40,10 @@ public class FileCopier {
 
     public String getLastLocalizedMessage() {
         return lastLocalizedMessage;
+    }
+
+    public int getBufferLength() {
+        return buffer.length;
     }
 
     public synchronized boolean copy(File from, File to) {
@@ -69,13 +73,18 @@ public class FileCopier {
         return lenFrom == to.length();
     }
 
-    public synchronized boolean copy(byte[] from, int lenFrom, File to) {
+    public synchronized boolean copy(byte[] from, long lenFrom, File to) {
+        if (lenFrom < 0 || lenFrom > from.length) {
+            lastLocalizedMessage = String.format(
+                    "invalid length %d for buffer of size %d", lenFrom, from.length);
+            return false;
+        }
         File parent = to.getParentFile();
         var created = parent.mkdirs();
         LOGGER.log(Level.INFO, String.format("%s created: %b",
                 parent.getAbsolutePath(), created));
         try (FileOutputStream out = new FileOutputStream(to)) {
-            out.write(from, 0, lenFrom);
+            out.write(from, 0, (int) lenFrom);
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "error while copying", e);
             lastLocalizedMessage = e.getLocalizedMessage();

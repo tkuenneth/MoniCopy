@@ -79,11 +79,6 @@ tasks.named("copyNonXmlValueResourcesForMain").configure {
     dependsOn("exportLibraryDefinitions")
 }
 
-tasks.withType<Test>().configureEach {
-    // DefaultCopyEngine allocates large MD5/FileCopier buffers.
-    maxHeapSize = "1g"
-}
-
 compose.desktop {
     application {
         mainClass = "com.thomaskuenneth.monicopy.MainKt"

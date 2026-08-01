@@ -38,10 +38,10 @@ public class MD5 {
     private final StringBuilder sb;
 
     private boolean readFromBuffer;
-    private int lengthOfFile;
+    private long lengthOfFile;
 
     public MD5() {
-        this(64 * 1024 * 1024);
+        this(IoBuffers.DEFAULT_LENGTH);
     }
 
     public MD5(int len) {
@@ -64,7 +64,7 @@ public class MD5 {
      *
      * @return length of the last hashed file
      */
-    public int getLengthOfFile() {
+    public long getLengthOfFile() {
         return lengthOfFile;
     }
 
@@ -108,22 +108,23 @@ public class MD5 {
         String result = null;
         reset();
         if (file.exists() && file.isFile()) {
-            lengthOfFile = (int) file.length();
-            int alreadyRead = 0;
-            int bytesToRead;
-            boolean first = true;
+            lengthOfFile = file.length();
+            long alreadyRead = 0;
             try (FileInputStream fis = new FileInputStream(file)) {
-                while ((bytesToRead = (lengthOfFile - alreadyRead)) > 0) {
-                    if (bytesToRead > buflen) {
-                        bytesToRead = buflen;
+                while (alreadyRead < lengthOfFile) {
+                    int bytesToRead = (int) Math.min(buflen, lengthOfFile - alreadyRead);
+                    int n = fis.read(buffer, 0, bytesToRead);
+                    if (n < 0) {
+                        LOGGER.log(Level.SEVERE,
+                                "unexpected EOF after {0} of {1} bytes in {2}",
+                                new Object[]{alreadyRead, lengthOfFile, file.getAbsolutePath()});
+                        break;
                     }
-                    bytesToRead = fis.read(buffer, 0, bytesToRead);
-                    if (first) {
-                        first = false;
-                        readFromBuffer = (bytesToRead == lengthOfFile) && (lengthOfFile <= buflen);
+                    if (alreadyRead == 0) {
+                        readFromBuffer = (n == lengthOfFile) && (lengthOfFile <= buflen);
                     }
-                    md.update(buffer, 0, bytesToRead);
-                    alreadyRead += bytesToRead;
+                    md.update(buffer, 0, n);
+                    alreadyRead += n;
                 }
                 result = convertDigestToString(md.digest());
             } catch (IOException e) {
