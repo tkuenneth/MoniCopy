@@ -23,9 +23,26 @@ jobs:
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "Using version $VERSION (tag v$VERSION)"
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v5
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'corretto'
+          java-version: 21
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Run tests
+        run: ./gradlew test
+
   create-windows-installer:
     runs-on: windows-latest
-    needs: resolve-version
+    needs: [resolve-version, test]
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v5
@@ -49,7 +66,7 @@ jobs:
 
   create-macos-installer:
     runs-on: macos-latest
-    needs: resolve-version
+    needs: [resolve-version, test]
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v5
