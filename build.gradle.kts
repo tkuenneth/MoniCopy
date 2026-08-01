@@ -82,6 +82,7 @@ tasks.named("copyNonXmlValueResourcesForMain").configure {
 compose.desktop {
     application {
         mainClass = "com.thomaskuenneth.monicopy.MainKt"
+        jvmArgs("-Xms1g")
         if (isMacOs) {
             jvmArgs(
                 "-Xdock:icon=${project.file("src/main/composeResources/drawable/app_icon.png").absolutePath}",
