@@ -84,6 +84,9 @@ compose.desktop {
                 "-Xdock:icon=${project.file("src/main/composeResources/drawable/app_icon.png").absolutePath}",
             )
         }
+        buildTypes.release.proguard {
+            configurationFiles.from(project.file("compose-desktop.pro"))
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "MoniCopy"
@@ -92,10 +95,12 @@ compose.desktop {
             copyright = "Copyright 2017 - 2026 Thomas Kuenneth"
             vendor = "Thomas Kuenneth"
             licenseFile.set(project.file("LICENSE"))
+            modules("java.instrument", "java.prefs", "jdk.unsupported")
             macOS {
                 bundleID = "com.thomaskuenneth.monicopy"
                 iconFile.set(project.file("artwork/MoniCopy.icns"))
                 packageBuildVersion = buildVersion
+                appCategory = "public.app-category.utilities"
                 signing {
                     // Local runDistributable stays unsigned (multiple Developer ID
                     // certs in login). GitHub Actions sets CI=true and signs there.
@@ -110,6 +115,8 @@ compose.desktop {
             windows {
                 iconFile.set(project.file("artwork/MoniCopy.ico"))
                 menuGroup = "Thomas Kuenneth"
+                upgradeUuid = "7a7524f4-596b-44d2-82c2-8551c0e3fff9"
+                shortcut = true
             }
             linux {
                 iconFile.set(project.file("src/main/composeResources/drawable/app_icon.png"))
