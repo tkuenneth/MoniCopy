@@ -18,9 +18,12 @@ package com.thomaskuenneth.monicopy
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 val DirectoryValidationTests by testSuite(
     compartment = { TestCompartment.Concurrent },
@@ -34,6 +37,48 @@ val DirectoryValidationTests by testSuite(
 
             assertEquals(DirectoryValidationIssue.Overlap, result.issue)
             assertFalse(result.canProceed)
+        }
+
+        test("unreadable source is reported as CannotRead") { directory ->
+            val missingSource = directory.resolve("missing-source").toFile().absolutePath
+            val dest = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath
+
+            val result = validateDirectories(missingSource, dest)
+
+            assertEquals(DirectoryValidationIssue.CannotRead, result.issue)
+            assertFalse(result.canProceed)
+        }
+
+        test("unwritable destination is reported as CannotWrite") { directory ->
+            val source = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath
+            val missingDest = directory.resolve("missing-dest").toFile().absolutePath
+
+            val result = validateDirectories(source, missingDest)
+
+            assertEquals(DirectoryValidationIssue.CannotWrite, result.issue)
+            assertFalse(result.canProceed)
+        }
+
+        test("readable source and writable destination can proceed") { directory ->
+            val source = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath
+            val dest = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath
+
+            val result = validateDirectories(source, dest)
+
+            assertNull(result.issue)
+            assertTrue(result.canProceed)
+        }
+
+        test("prepareDirectories creates missing source and destination") { directory ->
+            val source = directory.resolve("to-create-source")
+            val dest = directory.resolve("to-create-dest")
+            assertFalse(source.exists())
+            assertFalse(dest.exists())
+
+            prepareDirectories(source.toString(), dest.toString())
+
+            assertTrue(source.isDirectory())
+            assertTrue(dest.isDirectory())
         }
     }
 

@@ -17,6 +17,7 @@ package com.thomaskuenneth.monicopy
 
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
+import java.nio.file.Files
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
@@ -39,6 +40,21 @@ val FileStoreTests by testSuite(
             assertEquals(kept.absolutePath, files.single().absolutePath)
             assertTrue(files.none { it.name == "secret.txt" })
             assertEquals(1, store.numberOfDirectories)
+        }
+
+        test("symbolic links are skipped when scanning") { directory ->
+            val root = directory.resolve("scan-root").also { it.createDirectories() }
+            val kept = root.resolve("kept.txt").also { it.writeText("ok") }.toFile()
+            val target = directory.resolve("link-target").also { it.createDirectories() }
+            target.resolve("via-link.txt").writeText("skip-me")
+            Files.createSymbolicLink(root.resolve("linked"), target)
+
+            val store = FileStore(null)
+            val files = store.fill(root.toFile(), emptyList())
+
+            assertEquals(1, files.size)
+            assertEquals(kept.absolutePath, files.single().absolutePath)
+            assertTrue(files.none { it.name == "via-link.txt" })
         }
     }
 }

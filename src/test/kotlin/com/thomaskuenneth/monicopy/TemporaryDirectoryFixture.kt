@@ -26,9 +26,6 @@ import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
 import kotlin.io.path.deleteRecursively
 
-/**
- * Temp directory per TestBalloon docs: keep on local failure for inspection, delete on success or CI.
- */
 fun TestSuiteScope.temporaryDirectoryFixture(
     prefix: String = "${testSuiteInScope.testElementPath}-",
 ): TestFixture<Path> {
@@ -41,5 +38,17 @@ fun TestSuiteScope.temporaryDirectoryFixture(
         } else {
             println("Temporary directory: file://${toAbsolutePath()}")
         }
+    }
+}
+
+fun TestSuiteScope.javaTemporaryDirectoryFixture(
+    prefix: String = "monicopy-",
+): TestFixture<Path> = testFixture {
+    Files.createTempDirectory(prefix)
+} closeWith { testsSucceeded ->
+    if (testsSucceeded || testPlatform.environment("CI") != null) {
+        deleteRecursively()
+    } else {
+        println("Temporary directory: file://${toAbsolutePath()}")
     }
 }
