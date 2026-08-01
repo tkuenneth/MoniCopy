@@ -91,6 +91,7 @@ compose.desktop {
             description = "An easy-to-use folder copy app"
             copyright = "Copyright 2017 - 2026 Thomas Kuenneth"
             vendor = "Thomas Kuenneth"
+            licenseFile.set(project.file("LICENSE"))
             macOS {
                 bundleID = "com.thomaskuenneth.monicopy"
                 iconFile.set(project.file("artwork/MoniCopy.icns"))

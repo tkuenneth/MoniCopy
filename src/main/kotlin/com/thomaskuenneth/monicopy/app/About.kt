@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.thomaskuenneth.monicopy.generated.resources.Res
+import com.thomaskuenneth.monicopy.generated.resources.about_copyright
+import com.thomaskuenneth.monicopy.generated.resources.about_license
 import com.thomaskuenneth.monicopy.generated.resources.artwork_no_background
 import com.thomaskuenneth.monicopy.generated.resources.title
 import com.thomaskuenneth.monicopy.ui.UIConstants.PREFERRED_HORIZONTAL_PADDING
@@ -65,6 +67,19 @@ fun About(
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(Res.string.about_copyright),
+            modifier = Modifier.padding(top = PREFERRED_VERTICAL_PADDING),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(Res.string.about_license),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
