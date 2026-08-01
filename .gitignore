@@ -46,3 +46,5 @@ bin/
 
 ### AboutLibraries (generated at build time) ###
 src/main/composeResources/files/aboutlibraries.json
+
+**/Browse.plb

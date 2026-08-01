@@ -9,6 +9,8 @@
 
 MoniCopy only copies new and changed files.
 
-<img src="./screenshots/macos.png" alt="Screenshot of MoniCopy" width="30%" /> 
+<img src="./screenshots/macos.png" alt="Screenshot of MoniCopy on macOS" width="30%" /> 
+&nbsp;
+<img src="./screenshots/windows.png" alt="Screenshot of MoniCopy on Windows" width="30%" /> 
 
 **Please note** that MoniCopy cannot access files that are currently in use.
