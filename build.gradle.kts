@@ -76,7 +76,7 @@ compose.desktop {
             packageName = "MoniCopy"
             packageVersion = version.toString()
             description = "An easy-to-use folder copy app"
-            copyright = "2017 - 2026 Thomas Kuenneth. All rights reserved."
+            copyright = "Copyright 2017 - 2026 Thomas Kuenneth"
             vendor = "Thomas Kuenneth"
             macOS {
                 bundleID = "com.thomaskuenneth.monicopy"
