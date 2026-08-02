@@ -21,6 +21,7 @@ import java.nio.file.Files
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 val FileStoreTests by testSuite(
@@ -55,6 +56,11 @@ val FileStoreTests by testSuite(
             assertEquals(1, files.size)
             assertEquals(kept.absolutePath, files.single().absolutePath)
             assertTrue(files.none { it.name == "via-link.txt" })
+        }
+
+        test("fill with null file returns null") {
+            val store = FileStore(null)
+            assertNull(store.fill(null, emptyList()))
         }
     }
 }

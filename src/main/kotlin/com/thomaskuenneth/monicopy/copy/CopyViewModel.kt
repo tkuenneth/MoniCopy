@@ -265,13 +265,20 @@ class CopyViewModel(
                             state.copy(
                                 copyState = CopyState.DELETING,
                                 orphanProgressPercent = null,
+                                orphanPhaseComplete = false,
                             )
                         }
                     }
                     if (!shouldDelete) return
                     viewModelScope.launch(Dispatchers.Default) {
                         val ignores = _uiState.value.ignores.map { it.absolutePath }
-                        engine.deleteOrphans(from, to, ignores, ::appendLog, ::onOrphanProgress)
+                        engine.deleteOrphans(
+                            from,
+                            to,
+                            ignores,
+                            ::appendLog,
+                            ::onOrphanProgress,
+                        )
                         if (_uiState.value.copyState == CopyState.IDLE) return@launch
                         nextStep()
                     }

@@ -47,6 +47,8 @@ class DefaultCopyEngine : CopyEngine, Pausable {
     @Volatile
     private var cancelled = false
 
+    internal var fileStoreFactory: () -> FileStore = { FileStore(this) }
+
     override var copyStateProvider: () -> CopyState = { CopyState.IDLE }
 
     override fun cancel() {
@@ -133,6 +135,20 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         }
     }
 
+    private fun deleteOrphans(
+        sourceDir: File,
+        destDir: File,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+    ) {
+        cancelled = false
+        try {
+            deleteOrphansInternal(sourceDir, destDir, ignores, onMessage, onProgress)
+        } catch (_: CopyCancelledException) {
+        }
+    }
+
     private fun copyInternal(
         from: File,
         to: File,
@@ -143,8 +159,14 @@ class DefaultCopyEngine : CopyEngine, Pausable {
     ) {
         val offset = from.absolutePath.length + 1
         onMessage(blockingGetString(Res.string.started_copying))
-        val store = FileStore(this)
-        val files = store.fill(from, ignores) ?: return
+        val store = fileStoreFactory()
+        val files = store.fill(from, ignores)
+        if (files == null) {
+            onCounts(0L, 0L)
+            reportInitialProgress(0L, onProgress)
+            onMessage(blockingGetString(Res.string.finished_copying))
+            return
+        }
         val numberOfFiles = store.numberOfFiles
         val subfolderCount = store.numberOfDirectories - 1
         onCounts(numberOfFiles, subfolderCount)
@@ -188,20 +210,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage(blockingGetString(Res.string.finished_copying))
     }
 
-    private fun deleteOrphans(
-        sourceDir: File,
-        destDir: File,
-        ignores: List<String>,
-        onMessage: (String) -> Unit,
-        onProgress: (Int) -> Unit,
-    ) {
-        cancelled = false
-        try {
-            deleteOrphansInternal(sourceDir, destDir, ignores, onMessage, onProgress)
-        } catch (_: CopyCancelledException) {
-        }
-    }
-
     private fun deleteOrphansInternal(
         sourceDir: File,
         destDir: File,
@@ -211,11 +219,18 @@ class DefaultCopyEngine : CopyEngine, Pausable {
     ) {
         var offset = destDir.absolutePath.length
         onMessage(blockingGetString(Res.string.started_deleting))
-        val store = FileStore(this)
-        val files = store.fill(destDir, ignores) ?: return
+        val store = fileStoreFactory()
+        val files = store.fill(destDir, ignores)
+        if (files == null) {
+            reportInitialProgress(0L, onProgress)
+            onMessage(blockingGetString(Res.string.finished_deleting))
+            return
+        }
         val numberOfFiles = store.numberOfFiles
-        var numberOfProcessedFiles = 0L
-        var lastReported = reportInitialProgress(numberOfFiles, onProgress)
+        val folders = collectFolders(destDir)
+        val total = numberOfFiles + folders.size.toLong()
+        var processed = 0L
+        var lastReported = reportInitialProgress(total, onProgress)
         for (fileToDelete in files) {
             checkForPause()
             val filename = fileToDelete.absolutePath
@@ -236,36 +251,45 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 }
             }
             lastReported = reportSteppedProgress(
-                processed = ++numberOfProcessedFiles,
-                total = numberOfFiles,
+                processed = ++processed,
+                total = total,
                 lastReported = lastReported,
                 onProgress = onProgress,
             )
         }
-        deleteOrphanedDirs(destDir, onMessage)
+        for (folder in folders) {
+            checkForPause()
+            val absolutePath = folder.absolutePath
+            if (!folder.isDirectory) {
+                logger.log(Level.SEVERE, "$absolutePath is not a directory")
+            } else {
+                val children = folder.list()
+                if (children != null && children.isEmpty()) {
+                    logger.log(Level.INFO, "deleting directory $absolutePath")
+                    if (!folder.delete()) {
+                        onMessage(blockingGetString(Res.string.could_not_delete_path, absolutePath))
+                    }
+                }
+            }
+            lastReported = reportSteppedProgress(
+                processed = ++processed,
+                total = total,
+                lastReported = lastReported,
+                onProgress = onProgress,
+            )
+        }
         onMessage(blockingGetString(Res.string.finished_deleting))
     }
 
-    private fun deleteOrphanedDirs(base: File, onMessage: (String) -> Unit) {
-        val folders = FolderMap()
-        folders.fill(base)
-        val iterator = folders.iterator
+    private fun collectFolders(base: File): List<File> {
+        val folderMap = FolderMap()
+        folderMap.fill(base)
+        val folders = ArrayList<File>()
+        val iterator = folderMap.iterator
         while (iterator.hasNext()) {
-            checkForPause()
-            val f = iterator.next()
-            val absolutePath = f.absolutePath
-            if (!f.isDirectory) {
-                logger.log(Level.SEVERE, "$absolutePath is not a directory")
-                continue
-            }
-            val children = f.list()
-            if (children != null && children.isEmpty()) {
-                logger.log(Level.INFO, "deleting directory $absolutePath")
-                if (!f.delete()) {
-                    onMessage(blockingGetString(Res.string.could_not_delete_path, absolutePath))
-                }
-            }
+            folders.add(iterator.next())
         }
+        return folders
     }
 
     private fun reportInitialProgress(

@@ -17,10 +17,18 @@
 
 package com.thomaskuenneth.monicopy.copy
 
+import com.thomaskuenneth.monicopy.FileStore
 import com.thomaskuenneth.monicopy.TestIoSizes
+import com.thomaskuenneth.monicopy.blockingGetString
+import com.thomaskuenneth.monicopy.generated.resources.Res
+import com.thomaskuenneth.monicopy.generated.resources.finished_copying
+import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
+import com.thomaskuenneth.monicopy.generated.resources.started_copying
+import com.thomaskuenneth.monicopy.generated.resources.started_deleting
 import com.thomaskuenneth.monicopy.javaTemporaryDirectoryFixture
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -325,6 +333,56 @@ val CopyEngineTests by testSuite(
                 ws.engine.resume()
             }
         }
+
+        test("copy still finishes when file scan returns null") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            ws.installNullFillStore()
+            val messages = mutableListOf<String>()
+            val progress = mutableListOf<Int>()
+            var fileCount: Long? = null
+            var subfolderCount: Long? = null
+            val started = blockingGetString(Res.string.started_copying)
+            val finished = blockingGetString(Res.string.finished_copying)
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                messages::add,
+                progress::add,
+            ) { files, folders ->
+                fileCount = files
+                subfolderCount = folders
+            }
+
+            assertEquals(0L, fileCount)
+            assertEquals(0L, subfolderCount)
+            assertEquals(listOf(100), progress)
+            assertEquals(started, messages.first())
+            assertEquals(finished, messages.last())
+        }
+
+        test("deleteOrphans still finishes when file scan returns null") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            ws.installNullFillStore()
+            ws.engine.copyStateProvider = { CopyState.DELETING }
+            val messages = mutableListOf<String>()
+            val progress = mutableListOf<Int>()
+            val started = blockingGetString(Res.string.started_deleting)
+            val finished = blockingGetString(Res.string.finished_deleting)
+
+            ws.engine.deleteOrphans(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                messages::add,
+                progress::add,
+            )
+
+            assertEquals(listOf(100), progress)
+            assertEquals(started, messages.first())
+            assertEquals(finished, messages.last())
+        }
     }
 }
 
@@ -336,6 +394,14 @@ private class CopyEngineWorkspace(root: Path) {
     }
 
     fun ignoreMessages(@Suppress("UNUSED_PARAMETER") message: String) = Unit
+
+    fun installNullFillStore() {
+        engine.fileStoreFactory = {
+            object : FileStore(engine) {
+                override fun fill(file: File?, ignores: List<String>?): MutableList<File>? = null
+            }
+        }
+    }
 }
 
 private fun md5Hex(path: Path): String {
