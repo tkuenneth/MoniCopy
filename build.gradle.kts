@@ -79,6 +79,11 @@ tasks.named("copyNonXmlValueResourcesForMain").configure {
     dependsOn("exportLibraryDefinitions")
 }
 
+tasks.withType<Test>().configureEach {
+    // DefaultCopyEngine holds three IoBuffers.DEFAULT_LENGTH arrays (~192 MiB at 64 MiB).
+    maxHeapSize = "1g"
+}
+
 compose.desktop {
     application {
         mainClass = "com.thomaskuenneth.monicopy.MainKt"
