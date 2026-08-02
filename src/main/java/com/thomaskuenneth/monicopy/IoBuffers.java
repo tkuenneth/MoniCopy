@@ -17,7 +17,7 @@ package com.thomaskuenneth.monicopy;
 
 final class IoBuffers {
 
-    static final int DEFAULT_LENGTH = 1024 * 1024;
+    static final int DEFAULT_LENGTH = 64 * 1024 * 1024;
 
     private IoBuffers() {
     }
