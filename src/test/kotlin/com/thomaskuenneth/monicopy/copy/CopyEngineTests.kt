@@ -229,6 +229,36 @@ val CopyEngineTests by testSuite(
             assertEquals(sourceFile.toFile().lastModified(), destFile.toFile().lastModified())
         }
 
+        test("mustBeCopied streams a recopy when MD5 differs and source exceeds the I/O buffer") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val size = bufferLength + 1
+            val sourceContent = ByteArray(size).also { SecureRandom().nextBytes(it) }
+            val destContent = ByteArray(size).also { SecureRandom().nextBytes(it) }
+            val sourceFile = ws.source.resolve("stream-diff.bin").also { it.writeBytes(sourceContent) }
+            val destFile = ws.dest.resolve("stream-diff.bin").also { it.writeBytes(destContent) }
+            destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
+
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+
+            assertContentEquals(sourceContent, destFile.readBytes())
+            assertEquals(sourceFile.toFile().lastModified(), destFile.toFile().lastModified())
+        }
+
+        test("mustBeCopied skips rewrite when MD5 matches for a source larger than the I/O buffer") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val size = bufferLength + 1
+            val content = ByteArray(size).also { SecureRandom().nextBytes(it) }
+            val sourceFile = ws.source.resolve("stream-same.bin").also { it.writeBytes(content) }
+            val destFile = ws.dest.resolve("stream-same.bin").also { it.writeBytes(content) }
+            destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
+            val checksumBefore = md5Hex(destFile)
+
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+
+            assertEquals(checksumBefore, md5Hex(destFile))
+            assertEquals(sourceFile.toFile().lastModified(), destFile.toFile().lastModified())
+        }
+
         test("copy waits while paused and completes after resume") { directory ->
             val ws = CopyEngineWorkspace(directory)
             ws.source.resolve("a.bin").writeBytes(byteArrayOf(1))
