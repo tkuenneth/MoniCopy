@@ -35,7 +35,7 @@ import kotlin.test.assertTrue
 val IoBufferTests by testSuite(
     compartment = { TestCompartment.Concurrent },
 ) {
-    test("MD5 and FileCopier default buffers are 1 MiB") {
+    test("MD5 and FileCopier default buffers match IoBuffers.DEFAULT_LENGTH") {
         assertEquals(IoBuffers.DEFAULT_LENGTH, MD5().buffer.size)
         assertEquals(IoBuffers.DEFAULT_LENGTH, FileCopier().bufferLength)
     }
