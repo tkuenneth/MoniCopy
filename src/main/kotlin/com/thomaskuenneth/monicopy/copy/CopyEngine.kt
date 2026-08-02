@@ -19,11 +19,39 @@ interface CopyEngine {
     var copyStateProvider: () -> CopyState
     fun resume()
     fun cancel()
-    fun copy(fromPath: String, toPath: String, ignores: List<String>, onMessage: (String) -> Unit)
+
+    fun copy(
+        fromPath: String,
+        toPath: String,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+    )
+
+    fun copy(
+        fromPath: String,
+        toPath: String,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+        onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+    ) {
+        copy(fromPath, toPath, ignores, onMessage)
+    }
+
     fun deleteOrphans(
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
         onMessage: (String) -> Unit,
     )
+
+    fun deleteOrphans(
+        sourcePath: String,
+        destPath: String,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+    ) {
+        deleteOrphans(sourcePath, destPath, ignores, onMessage)
+    }
 }

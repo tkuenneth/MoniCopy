@@ -60,9 +60,7 @@ fun MoniCopyScreen(
                     label = "mainPane",
                 ) { isOperationMode ->
                     when (isOperationMode) {
-                        true -> InFlightPane(
-                            logMessages = uiState.logMessages,
-                        )
+                        true -> InFlightPane(uiState = uiState)
 
                         false -> SetupPane(
                             uiState = uiState,

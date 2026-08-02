@@ -25,10 +25,8 @@ import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.could_not_copy
 import com.thomaskuenneth.monicopy.generated.resources.could_not_delete
 import com.thomaskuenneth.monicopy.generated.resources.could_not_delete_path
-import com.thomaskuenneth.monicopy.generated.resources.find_files
 import com.thomaskuenneth.monicopy.generated.resources.finished_copying
 import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
-import com.thomaskuenneth.monicopy.generated.resources.number_of_files_and_directories
 import com.thomaskuenneth.monicopy.generated.resources.started_copying
 import com.thomaskuenneth.monicopy.generated.resources.started_deleting
 import org.koin.core.annotation.Single
@@ -81,8 +79,24 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         }
     }
 
-    override fun copy(fromPath: String, toPath: String, ignores: List<String>, onMessage: (String) -> Unit) {
-        copy(File(fromPath), File(toPath), ignores, onMessage)
+    override fun copy(
+        fromPath: String,
+        toPath: String,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+    ) {
+        copy(fromPath, toPath, ignores, onMessage, onProgress = {}, onCounts = { _, _ -> })
+    }
+
+    override fun copy(
+        fromPath: String,
+        toPath: String,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+        onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+    ) {
+        copy(File(fromPath), File(toPath), ignores, onMessage, onProgress, onCounts)
     }
 
     override fun deleteOrphans(
@@ -91,34 +105,51 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         ignores: List<String>,
         onMessage: (String) -> Unit,
     ) {
-        deleteOrphans(File(sourcePath), File(destPath), ignores, onMessage)
+        deleteOrphans(sourcePath, destPath, ignores, onMessage, onProgress = {})
     }
 
-    private fun copy(from: File, to: File, ignores: List<String>, onMessage: (String) -> Unit) {
+    override fun deleteOrphans(
+        sourcePath: String,
+        destPath: String,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+    ) {
+        deleteOrphans(File(sourcePath), File(destPath), ignores, onMessage, onProgress)
+    }
+
+    private fun copy(
+        from: File,
+        to: File,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+        onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+    ) {
         cancelled = false
         try {
-            copyInternal(from, to, ignores, onMessage)
+            copyInternal(from, to, ignores, onMessage, onProgress, onCounts)
         } catch (_: CopyCancelledException) {
         }
     }
 
-    private fun copyInternal(from: File, to: File, ignores: List<String>, onMessage: (String) -> Unit) {
+    private fun copyInternal(
+        from: File,
+        to: File,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+        onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+    ) {
         val offset = from.absolutePath.length + 1
         onMessage(blockingGetString(Res.string.started_copying))
-        onMessage(blockingGetString(Res.string.find_files))
         val store = FileStore(this)
         val files = store.fill(from, ignores) ?: return
         val numberOfFiles = store.numberOfFiles
+        val subfolderCount = store.numberOfDirectories - 1
+        onCounts(numberOfFiles, subfolderCount)
         var numberOfProcessedFiles = 0L
-        val ratio = 100f / numberOfFiles.toFloat()
-        onMessage(
-            blockingGetString(
-                Res.string.number_of_files_and_directories,
-                numberOfFiles,
-                store.numberOfDirectories - 1,
-            ),
-        )
-        var lastPrinted = -1
+        var lastReported = reportInitialProgress(numberOfFiles, onProgress)
         for (fileToCopy in files) {
             checkForPause()
             val destination = File(to, fileToCopy.absolutePath.substring(offset))
@@ -147,28 +178,44 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             } else {
                 logger.log(Level.INFO, "no need to copy")
             }
-            val percent = (ratio * ++numberOfProcessedFiles).toInt()
-            if (percent % 10 == 0 && lastPrinted != percent) {
-                onMessage("$percent percent done")
-                lastPrinted = percent
-            }
+            lastReported = reportSteppedProgress(
+                processed = ++numberOfProcessedFiles,
+                total = numberOfFiles,
+                lastReported = lastReported,
+                onProgress = onProgress,
+            )
         }
         onMessage(blockingGetString(Res.string.finished_copying))
     }
 
-    private fun deleteOrphans(sourceDir: File, destDir: File, ignores: List<String>, onMessage: (String) -> Unit) {
+    private fun deleteOrphans(
+        sourceDir: File,
+        destDir: File,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+    ) {
         cancelled = false
         try {
-            deleteOrphansInternal(sourceDir, destDir, ignores, onMessage)
+            deleteOrphansInternal(sourceDir, destDir, ignores, onMessage, onProgress)
         } catch (_: CopyCancelledException) {
         }
     }
 
-    private fun deleteOrphansInternal(sourceDir: File, destDir: File, ignores: List<String>, onMessage: (String) -> Unit) {
+    private fun deleteOrphansInternal(
+        sourceDir: File,
+        destDir: File,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+    ) {
         var offset = destDir.absolutePath.length
         onMessage(blockingGetString(Res.string.started_deleting))
         val store = FileStore(this)
         val files = store.fill(destDir, ignores) ?: return
+        val numberOfFiles = store.numberOfFiles
+        var numberOfProcessedFiles = 0L
+        var lastReported = reportInitialProgress(numberOfFiles, onProgress)
         for (fileToDelete in files) {
             checkForPause()
             val filename = fileToDelete.absolutePath
@@ -188,6 +235,12 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                     )
                 }
             }
+            lastReported = reportSteppedProgress(
+                processed = ++numberOfProcessedFiles,
+                total = numberOfFiles,
+                lastReported = lastReported,
+                onProgress = onProgress,
+            )
         }
         deleteOrphanedDirs(destDir, onMessage)
         onMessage(blockingGetString(Res.string.finished_deleting))
@@ -213,6 +266,33 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 }
             }
         }
+    }
+
+    private fun reportInitialProgress(
+        total: Long,
+        onProgress: (Int) -> Unit,
+    ): Int {
+        val percent = if (total == 0L) 100 else 0
+        onProgress(percent)
+        return percent
+    }
+
+    private fun reportSteppedProgress(
+        processed: Long,
+        total: Long,
+        lastReported: Int,
+        onProgress: (Int) -> Unit,
+    ): Int {
+        if (total <= 0L) {
+            onProgress(100)
+            return 100
+        }
+        val percent = ((100.0 * processed) / total).toInt().coerceIn(0, 100)
+        if (percent % 10 == 0 && percent != lastReported) {
+            onProgress(percent)
+            return percent
+        }
+        return lastReported
     }
 
     @Synchronized

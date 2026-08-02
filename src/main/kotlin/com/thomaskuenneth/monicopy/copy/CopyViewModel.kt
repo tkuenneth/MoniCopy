@@ -21,6 +21,8 @@ import com.thomaskuenneth.monicopy.blockingGetString
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.add_ignored_directory
 import com.thomaskuenneth.monicopy.generated.resources.destination_folder
+import com.thomaskuenneth.monicopy.generated.resources.finished_copying
+import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
 import com.thomaskuenneth.monicopy.generated.resources.message_template
 import com.thomaskuenneth.monicopy.generated.resources.source_folder
 import com.thomaskuenneth.monicopy.platform.DirectoryChooser
@@ -47,9 +49,37 @@ data class CopyUiState(
     val selectedIgnores: Set<File> = emptySet(),
     val deleteOrphans: Boolean = false,
     val logMessages: List<String> = emptyList(),
+    val copyProgressPercent: Int? = null,
+    val orphanProgressPercent: Int? = null,
+    val fileCount: Long? = null,
+    val subfolderCount: Long? = null,
+    val copyPhaseComplete: Boolean = false,
+    val orphanPhaseComplete: Boolean = false,
 ) {
     val isOperationMode: Boolean
         get() = copyState != CopyState.IDLE
+
+    val isFindingFiles: Boolean
+        get() = fileCount == null &&
+            (copyState == CopyState.COPYING || copyState == CopyState.COPY_PAUSED)
+
+    val isFindingOrphans: Boolean
+        get() = orphanProgressPercent == null &&
+            (copyState == CopyState.DELETING || copyState == CopyState.DELETE_PAUSED)
+
+    val isPaused: Boolean
+        get() = copyState == CopyState.COPY_PAUSED || copyState == CopyState.DELETE_PAUSED
+
+    fun withClearedOperationUi(copyState: CopyState): CopyUiState = copy(
+        copyState = copyState,
+        logMessages = emptyList(),
+        copyProgressPercent = null,
+        orphanProgressPercent = null,
+        fileCount = null,
+        subfolderCount = null,
+        copyPhaseComplete = false,
+        orphanPhaseComplete = false,
+    )
 }
 
 @KoinViewModel
@@ -135,7 +165,7 @@ class CopyViewModel(
     fun cancelOperation() {
         when (_uiState.value.copyState) {
             CopyState.COPYING, CopyState.COPY_PAUSED, CopyState.DELETING, CopyState.DELETE_PAUSED -> {
-                mutate { it.copy(copyState = CopyState.IDLE, logMessages = emptyList()) }
+                mutate { it.withClearedOperationUi(CopyState.IDLE) }
                 engine.cancel()
             }
             CopyState.IDLE, CopyState.FINISHED -> Unit
@@ -147,10 +177,10 @@ class CopyViewModel(
             CopyState.IDLE -> {
                 val from = _uiState.value.sourceDir ?: return
                 val to = _uiState.value.destDir ?: return
-                mutate { it.copy(copyState = CopyState.COPYING, logMessages = emptyList()) }
+                mutate { it.withClearedOperationUi(CopyState.COPYING) }
                 viewModelScope.launch(Dispatchers.Default) {
                     val ignores = _uiState.value.ignores.map { it.absolutePath }
-                    engine.copy(from, to, ignores, ::appendLog)
+                    engine.copy(from, to, ignores, ::appendLog, ::onCopyProgress, ::onCounts)
                     if (_uiState.value.copyState == CopyState.IDLE) return@launch
                     nextStep()
                 }
@@ -170,7 +200,7 @@ class CopyViewModel(
                 engine.resume()
             }
             CopyState.FINISHED -> {
-                mutate { it.copy(copyState = CopyState.IDLE, logMessages = emptyList()) }
+                mutate { it.withClearedOperationUi(CopyState.IDLE) }
             }
         }
     }
@@ -197,7 +227,27 @@ class CopyViewModel(
     private fun appendLog(msg: String) {
         val time = logTimeFormatter.format()
         val line = blockingGetString(Res.string.message_template, time, msg).trimEnd()
-        mutate { it.copy(logMessages = it.logMessages + line) }
+        val finishedCopying = blockingGetString(Res.string.finished_copying)
+        val finishedDeleting = blockingGetString(Res.string.finished_deleting)
+        mutate { state ->
+            state.copy(
+                logMessages = state.logMessages + line,
+                copyPhaseComplete = state.copyPhaseComplete || msg == finishedCopying,
+                orphanPhaseComplete = state.orphanPhaseComplete || msg == finishedDeleting,
+            )
+        }
+    }
+
+    private fun onCopyProgress(percent: Int) {
+        mutate { it.copy(copyProgressPercent = percent) }
+    }
+
+    private fun onOrphanProgress(percent: Int) {
+        mutate { it.copy(orphanProgressPercent = percent) }
+    }
+
+    private fun onCounts(fileCount: Long, subfolderCount: Long) {
+        mutate { it.copy(fileCount = fileCount, subfolderCount = subfolderCount) }
     }
 
     private fun nextStep() {
@@ -212,13 +262,16 @@ class CopyViewModel(
                         if (state.copyState == CopyState.IDLE) state
                         else {
                             shouldDelete = true
-                            state.copy(copyState = CopyState.DELETING)
+                            state.copy(
+                                copyState = CopyState.DELETING,
+                                orphanProgressPercent = null,
+                            )
                         }
                     }
                     if (!shouldDelete) return
                     viewModelScope.launch(Dispatchers.Default) {
                         val ignores = _uiState.value.ignores.map { it.absolutePath }
-                        engine.deleteOrphans(from, to, ignores, ::appendLog)
+                        engine.deleteOrphans(from, to, ignores, ::appendLog, ::onOrphanProgress)
                         if (_uiState.value.copyState == CopyState.IDLE) return@launch
                         nextStep()
                     }

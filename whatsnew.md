@@ -1,5 +1,4 @@
-# MoniCopy 1.1.1
+# MoniCopy 1.1.2
 
-- Smaller default I/O buffers and safer handling of large file lengths
-- Initial JVM heap set to 1 GB
-- Tests for buffer edges and core copy flows
+- Restored 64 MiB I/O buffers so large files hash and copy more efficiently
+- Copy and delete progress now show as live status on the left, with the log kept on the right

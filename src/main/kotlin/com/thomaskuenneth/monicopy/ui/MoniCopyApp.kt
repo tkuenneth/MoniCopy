@@ -15,7 +15,9 @@
  */
 package com.thomaskuenneth.monicopy.ui
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -26,6 +28,7 @@ import com.thomaskuenneth.monicopy.app.colorScheme
 import com.thomaskuenneth.monicopy.copy.CopyViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MoniCopyApp(
     appViewModel: AppViewModel = koinViewModel(),
@@ -36,7 +39,10 @@ fun MoniCopyApp(
     val copyUiState by copyViewModel.uiState.collectAsStateWithLifecycle()
     val navigationState = remember { NavigationState() }
 
-    MaterialTheme(colorScheme = colorScheme(appUiState.colorSchemeMode)) {
+    MaterialTheme(
+        colorScheme = colorScheme(appUiState.colorSchemeMode),
+        motionScheme = MotionScheme.expressive(),
+    ) {
         MoniCopyScreen(
             uiState = copyUiState,
             viewModel = copyViewModel,
