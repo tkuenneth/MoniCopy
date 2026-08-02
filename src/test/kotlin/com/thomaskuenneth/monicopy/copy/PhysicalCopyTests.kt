@@ -17,8 +17,8 @@
 
 package com.thomaskuenneth.monicopy.copy
 
-import com.thomaskuenneth.monicopy.FileCopier
 import com.thomaskuenneth.monicopy.MD5
+import com.thomaskuenneth.monicopy.TestIoSizes
 import com.thomaskuenneth.monicopy.javaTemporaryDirectoryFixture
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
@@ -40,11 +40,10 @@ val PhysicalCopyTests by testSuite(
 ) {
     javaTemporaryDirectoryFixture().asParameterForEach {
         test("copies files at half, just-under, full, and one-past the I/O buffer size") { directory ->
-            val bufferSize = FileCopier().bufferLength
-            val halfBuffer = randomBytes(bufferSize / 2)
-            val underBuffer = randomBytes(bufferSize - 1)
-            val fullBuffer = randomBytes(bufferSize)
-            val pastBuffer = randomBytes(bufferSize + 1)
+            val halfBuffer = randomBytes(TestIoSizes.half)
+            val underBuffer = randomBytes(TestIoSizes.justUnder)
+            val fullBuffer = randomBytes(TestIoSizes.exact)
+            val pastBuffer = randomBytes(TestIoSizes.justOver)
 
             val source = directory.resolve("source").also { it.createDirectories() }
             val dest = directory.resolve("dest").also { it.createDirectories() }

@@ -17,7 +17,7 @@
 
 package com.thomaskuenneth.monicopy.copy
 
-import com.thomaskuenneth.monicopy.FileCopier
+import com.thomaskuenneth.monicopy.TestIoSizes
 import com.thomaskuenneth.monicopy.javaTemporaryDirectoryFixture
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
@@ -44,11 +44,19 @@ import kotlin.test.assertTrue
 val CopyEngineTests by testSuite(
     compartment = { TestCompartment.Sequential },
 ) {
-    val bufferLength = FileCopier().bufferLength
     val copySizes = buildList {
-        addAll(listOf(1, 1024, bufferLength - 1, bufferLength, bufferLength + 1, bufferLength + 256 * 1024))
+        addAll(
+            listOf(
+                TestIoSizes.tiny,
+                TestIoSizes.small,
+                TestIoSizes.justUnder,
+                TestIoSizes.exact,
+                TestIoSizes.justOver,
+                TestIoSizes.wellOver,
+            ),
+        )
         val random = Random(42)
-        repeat(5) { add(random.nextInt(1, bufferLength * 2 + 1)) }
+        repeat(5) { add(random.nextInt(1, TestIoSizes.buffer * 2 + 1)) }
     }.distinct().sorted()
 
     javaTemporaryDirectoryFixture().asParameterForEach {
@@ -189,7 +197,7 @@ val CopyEngineTests by testSuite(
 
         test("mustBeCopied skips content rewrite when MD5 matches despite different mtime") { directory ->
             val ws = CopyEngineWorkspace(directory)
-            val content = ByteArray(8 * 1024).also { SecureRandom().nextBytes(it) }
+            val content = ByteArray(TestIoSizes.fitsComfortably).also { SecureRandom().nextBytes(it) }
             val sourceFile = ws.source.resolve("hash.bin").also { it.writeBytes(content) }
             val destFile = ws.dest.resolve("hash.bin").also { it.writeBytes(content) }
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
@@ -203,8 +211,8 @@ val CopyEngineTests by testSuite(
 
         test("mustBeCopied recopies when MD5 differs with same size and different mtime") { directory ->
             val ws = CopyEngineWorkspace(directory)
-            val sourceContent = ByteArray(4096) { 1 }
-            val destContent = ByteArray(4096) { 2 }
+            val sourceContent = ByteArray(TestIoSizes.fitsModerately) { 1 }
+            val destContent = ByteArray(TestIoSizes.fitsModerately) { 2 }
             val sourceFile = ws.source.resolve("diff.bin").also { it.writeBytes(sourceContent) }
             val destFile = ws.dest.resolve("diff.bin").also { it.writeBytes(destContent) }
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
@@ -216,12 +224,12 @@ val CopyEngineTests by testSuite(
 
         test("engine recopies from the MD5 buffer when the source fits in memory") { directory ->
             val ws = CopyEngineWorkspace(directory)
-            val sourceContent = ByteArray(64 * 1024).also { SecureRandom().nextBytes(it) }
+            val sourceContent = ByteArray(TestIoSizes.fitsEasily).also { SecureRandom().nextBytes(it) }
             val destContent = ByteArray(sourceContent.size) { 0 }
             val sourceFile = ws.source.resolve("buffered.bin").also { it.writeBytes(sourceContent) }
             val destFile = ws.dest.resolve("buffered.bin").also { it.writeBytes(destContent) }
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
-            assertTrue(sourceContent.size.toLong() <= bufferLength)
+            assertTrue(sourceContent.size <= TestIoSizes.buffer)
 
             ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
 
@@ -231,7 +239,7 @@ val CopyEngineTests by testSuite(
 
         test("mustBeCopied streams a recopy when MD5 differs and source exceeds the I/O buffer") { directory ->
             val ws = CopyEngineWorkspace(directory)
-            val size = bufferLength + 1
+            val size = TestIoSizes.justOver
             val sourceContent = ByteArray(size).also { SecureRandom().nextBytes(it) }
             val destContent = ByteArray(size).also { SecureRandom().nextBytes(it) }
             val sourceFile = ws.source.resolve("stream-diff.bin").also { it.writeBytes(sourceContent) }
@@ -246,7 +254,7 @@ val CopyEngineTests by testSuite(
 
         test("mustBeCopied skips rewrite when MD5 matches for a source larger than the I/O buffer") { directory ->
             val ws = CopyEngineWorkspace(directory)
-            val size = bufferLength + 1
+            val size = TestIoSizes.justOver
             val content = ByteArray(size).also { SecureRandom().nextBytes(it) }
             val sourceFile = ws.source.resolve("stream-same.bin").also { it.writeBytes(content) }
             val destFile = ws.dest.resolve("stream-same.bin").also { it.writeBytes(content) }

@@ -42,7 +42,7 @@ val IoBufferTests by testSuite(
 
     temporaryDirectoryFixture().asParameterForEach {
         test("FileCopier streams files larger than the buffer") { directory ->
-            val size = IoBuffers.DEFAULT_LENGTH + 256 * 1024
+            val size = TestIoSizes.wellOver
             val content = ByteArray(size).also { SecureRandom().nextBytes(it) }
             val from = directory.resolve("large-src.bin").also { it.writeBytes(content) }
             val to = directory.resolve("large-dst.bin").toFile()
@@ -52,7 +52,7 @@ val IoBufferTests by testSuite(
         }
 
         test("MD5 hashes files larger than the buffer without loading them whole") { directory ->
-            val size = IoBuffers.DEFAULT_LENGTH + 128 * 1024
+            val size = TestIoSizes.moderatelyOver
             val content = ByteArray(size).also { SecureRandom().nextBytes(it) }
             val file = directory.resolve("hash-me.bin").also { it.writeBytes(content) }
             val md5 = MD5()
@@ -105,7 +105,7 @@ private fun expectedMd5Hex(content: ByteArray): String {
 
 private fun expectedMd5HexOfZeros(length: Long): String {
     val digest = MessageDigest.getInstance("MD5")
-    val zeros = ByteArray(IoBuffers.DEFAULT_LENGTH)
+    val zeros = ByteArray(TestIoSizes.exact)
     var remaining = length
     while (remaining > 0) {
         val n = minOf(zeros.size.toLong(), remaining).toInt()
