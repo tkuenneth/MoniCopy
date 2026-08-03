@@ -83,8 +83,6 @@ public class FileStore {
                 String absolutePath = file.getAbsolutePath();
                 if (!ignores.contains(absolutePath)) {
                     numberOfDirectories += 1;
-                    LOGGER.log(Level.FINE, String.format("filling from %s",
-                            absolutePath));
                     File[] children = file.listFiles();
                     if (children == null) {
                         LOGGER.log(Level.SEVERE,
