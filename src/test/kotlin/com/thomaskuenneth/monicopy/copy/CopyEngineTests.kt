@@ -164,15 +164,19 @@ val CopyEngineTests by testSuite(
             assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
         }
 
-        test("symbolic links are skipped and not copied") { directory ->
+        test("symbolic links are remembered but not copied") { directory ->
             val ws = CopyEngineWorkspace(directory)
             val targetDir = directory.resolve("link-target").also { it.createDirectories() }
             targetDir.resolve("via-link.txt").writeBytes(byteArrayOf(42, 17, 99))
-            Files.createSymbolicLink(ws.source.resolve("linked-dir"), targetDir)
+            val link = Files.createSymbolicLink(ws.source.resolve("linked-dir"), targetDir)
             ws.source.resolve("regular.txt").writeBytes(byteArrayOf(1, 2, 3))
 
             ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
 
+            assertEquals(
+                listOf(link.toAbsolutePath().toString()),
+                ws.engine.rememberedSymbolicLinks.map { it.absolutePath },
+            )
             assertFalse(ws.dest.resolve("linked-dir").exists())
             assertFalse(ws.dest.resolve("linked-dir").resolve("via-link.txt").exists())
             assertContentEquals(byteArrayOf(1, 2, 3), ws.dest.resolve("regular.txt").readBytes())

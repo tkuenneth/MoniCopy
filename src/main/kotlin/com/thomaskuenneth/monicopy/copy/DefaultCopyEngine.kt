@@ -46,6 +46,10 @@ class DefaultCopyEngine : CopyEngine, Pausable {
     private val lock = Any()
     @Volatile
     private var cancelled = false
+    private val symbolicLinks = ArrayList<File>(FileStore.SYMBOLIC_LINKS_INITIAL_CAPACITY)
+
+    internal val rememberedSymbolicLinks: List<File>
+        get() = symbolicLinks
 
     internal var fileStoreFactory: () -> FileStore = { FileStore(this) }
 
@@ -164,6 +168,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage(blockingGetString(Res.string.started_copying))
         val store = fileStoreFactory()
         val files = store.fill(from, ignores)
+        rememberSymbolicLinksFrom(store)
         if (files == null) {
             onCounts(0L, 0L)
             reportInitialProgress(0L, onProgress)
@@ -221,6 +226,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage(blockingGetString(Res.string.started_deleting))
         val store = fileStoreFactory()
         val files = store.fill(destDir, ignores)
+        rememberSymbolicLinksFrom(store)
         if (files == null) {
             reportInitialProgress(0L, onProgress)
             onMessage(blockingGetString(Res.string.finished_deleting))
@@ -290,6 +296,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             folders.add(iterator.next())
         }
         return folders
+    }
+
+    private fun rememberSymbolicLinksFrom(store: FileStore) {
+        symbolicLinks.clear()
+        symbolicLinks.addAll(store.symbolicLinks)
     }
 
     private fun reportInitialProgress(

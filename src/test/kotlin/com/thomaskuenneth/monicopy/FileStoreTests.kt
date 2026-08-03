@@ -43,12 +43,12 @@ val FileStoreTests by testSuite(
             assertEquals(1, store.numberOfDirectories)
         }
 
-        test("symbolic links are skipped when scanning") { directory ->
+        test("symbolic links are collected when scanning") { directory ->
             val root = directory.resolve("scan-root").also { it.createDirectories() }
             val kept = root.resolve("kept.txt").also { it.writeText("ok") }.toFile()
             val target = directory.resolve("link-target").also { it.createDirectories() }
             target.resolve("via-link.txt").writeText("skip-me")
-            Files.createSymbolicLink(root.resolve("linked"), target)
+            val link = Files.createSymbolicLink(root.resolve("linked"), target).toFile()
 
             val store = FileStore(null)
             val files = store.fill(root.toFile(), emptyList())
@@ -56,6 +56,7 @@ val FileStoreTests by testSuite(
             assertEquals(1, files.size)
             assertEquals(kept.absolutePath, files.single().absolutePath)
             assertTrue(files.none { it.name == "via-link.txt" })
+            assertEquals(listOf(link.absolutePath), store.symbolicLinks.map { it.absolutePath })
         }
 
         test("fill with null file returns null") {

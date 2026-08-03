@@ -30,15 +30,18 @@ import java.util.logging.Logger;
 public class FileStore {
     
     private static final Logger LOGGER = Logger.getGlobal();
+    public static final int SYMBOLIC_LINKS_INITIAL_CAPACITY = 1000;
     
     private final Pausable callback;
     private final List<File> files;
+    private final List<File> symbolicLinks;
     
     private long numberOfDirectories;
     
     public FileStore(Pausable callback) {
         this.callback = callback;
         files = new ArrayList<>(200000);
+        symbolicLinks = new ArrayList<>(SYMBOLIC_LINKS_INITIAL_CAPACITY);
         numberOfDirectories = 0;
     }
 
@@ -49,6 +52,10 @@ public class FileStore {
      */
     public long getNumberOfFiles() {
         return files.size();
+    }
+
+    public List<File> getSymbolicLinks() {
+        return symbolicLinks;
     }
 
     /**
@@ -94,8 +101,7 @@ public class FileStore {
                 files.add(file);
             }
         } else {
-            LOGGER.log(Level.SEVERE, "{0} is a symbolic link",
-                    new Object[]{file.getAbsolutePath()});
+            symbolicLinks.add(file);
         }
         return files;
     }
