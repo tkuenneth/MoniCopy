@@ -321,7 +321,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
 
     @Synchronized
     private fun mustBeCopied(fileToCopy: File, destination: File): Boolean {
-        logger.log(Level.INFO, "preparing to copy ${fileToCopy.absolutePath}")
         mdFrom.reset()
         if (!destination.exists()) {
             logger.log(Level.INFO, "not found in destination")
