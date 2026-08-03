@@ -48,6 +48,7 @@ data class CopyUiState(
     val ignores: List<File> = emptyList(),
     val selectedIgnores: Set<File> = emptySet(),
     val deleteOrphans: Boolean = false,
+    val preserveSymbolicLinks: Boolean = true,
     val logMessages: List<String> = emptyList(),
     val copyProgressPercent: Int? = null,
     val orphanProgressPercent: Int? = null,
@@ -146,6 +147,11 @@ class CopyViewModel(
         repository.saveDeleteOrphans(enabled)
     }
 
+    fun onPreserveSymbolicLinksChanged(enabled: Boolean) {
+        mutate { it.copy(preserveSymbolicLinks = enabled) }
+        repository.savePreserveSymbolicLinks(enabled)
+    }
+
     fun selectSource() {
         val title = blockingGetString(Res.string.source_folder)
         val result = directoryChooser.chooseDirectory(title, _uiState.value.sourceDir)
@@ -192,6 +198,7 @@ class CopyViewModel(
                         ::onCopyProgress,
                         ::onCounts,
                         ::onCopyDecision,
+                        _uiState.value.preserveSymbolicLinks,
                     )
                     if (_uiState.value.copyState == CopyState.IDLE) return@launch
                     nextStep()
@@ -222,6 +229,7 @@ class CopyViewModel(
         _uiState.update {
             it.copy(
                 deleteOrphans = prefs.deleteOrphans,
+                preserveSymbolicLinks = prefs.preserveSymbolicLinks,
                 sourceDir = prefs.sourceDir,
                 destDir = prefs.destDir,
                 ignores = prefs.ignores.map(::File),

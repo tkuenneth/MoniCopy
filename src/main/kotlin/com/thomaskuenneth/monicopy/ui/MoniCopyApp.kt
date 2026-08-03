@@ -51,6 +51,8 @@ fun MoniCopyApp(
         AppBottomSheets(
             appViewModel = appViewModel,
             appUiState = appUiState,
+            preserveSymbolicLinks = copyUiState.preserveSymbolicLinks,
+            onPreserveSymbolicLinksChanged = copyViewModel::onPreserveSymbolicLinksChanged,
         )
         platformContent(appViewModel, navigationState)
     }

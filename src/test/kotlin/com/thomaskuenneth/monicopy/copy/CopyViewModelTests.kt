@@ -28,6 +28,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.createDirectories
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.first
@@ -167,18 +168,43 @@ val CopyViewModelTests by testSuite(
             assertEquals(CopyState.IDLE, harness.viewModel.uiState.value.copyState)
             assertTrue(harness.viewModel.uiState.value.logMessages.isEmpty())
         }
+
+        test("preserve symbolic links preference loads, saves, and is passed to the engine") { directory ->
+            val harness = CopyViewModelHarness(
+                directory = directory,
+                preferences = CopyPreferences(
+                    sourceDir = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
+                    destDir = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,
+                    deleteOrphans = false,
+                    preserveSymbolicLinks = false,
+                ),
+            )
+            assertFalse(harness.viewModel.uiState.value.preserveSymbolicLinks)
+
+            harness.viewModel.onPreserveSymbolicLinksChanged(true)
+            assertTrue(harness.viewModel.uiState.value.preserveSymbolicLinks)
+            assertEquals(listOf(true), harness.repository.savedPreserveSymbolicLinks)
+
+            harness.viewModel.onActionButtonClick()
+            withTimeout(5.seconds) {
+                harness.viewModel.uiState.first { it.copyState == CopyState.FINISHED }
+            }
+
+            assertEquals(true, harness.engine.lastPreserveSymbolicLinks)
+        }
     }
 }
 
-private class CopyViewModelHarness(directory: Path) {
+private class CopyViewModelHarness(
+    directory: Path,
+    preferences: CopyPreferences = CopyPreferences(
+        sourceDir = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
+        destDir = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,
+        deleteOrphans = true,
+    ),
+) {
     val engine = ControllableCopyEngine()
-    val repository = RecordingCopyRepository(
-        CopyPreferences(
-            sourceDir = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
-            destDir = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,
-            deleteOrphans = true,
-        ),
-    )
+    val repository = RecordingCopyRepository(preferences)
     val directoryChooser = ScriptedDirectoryChooser()
     val viewModel = CopyViewModel(
         engine = engine,
@@ -194,6 +220,7 @@ private class RecordingCopyRepository(
     val savedSourceDirs = mutableListOf<String?>()
     val savedDestDirs = mutableListOf<String?>()
     val savedDeleteOrphans = mutableListOf<Boolean>()
+    val savedPreserveSymbolicLinks = mutableListOf<Boolean>()
     val savedIgnores = mutableListOf<List<String>>()
 
     override fun load(): CopyPreferences = preferences
@@ -207,6 +234,10 @@ private class RecordingCopyRepository(
 
     override fun saveDeleteOrphans(enabled: Boolean) {
         savedDeleteOrphans += enabled
+    }
+
+    override fun savePreserveSymbolicLinks(enabled: Boolean) {
+        savedPreserveSymbolicLinks += enabled
     }
 
     override fun saveIgnores(ignores: List<String>) {
@@ -225,6 +256,7 @@ private class ControllableCopyEngine : CopyEngine {
     var blockDelete = false
     var resumeCount = 0
     var cancelCount = 0
+    var lastPreserveSymbolicLinks: Boolean? = null
 
     override var copyStateProvider: () -> CopyState = { CopyState.IDLE }
 
@@ -250,6 +282,20 @@ private class ControllableCopyEngine : CopyEngine {
         }
         calls += "copy"
         copyFinished.countDown()
+    }
+
+    override fun copy(
+        fromPath: String,
+        toPath: String,
+        ignores: List<String>,
+        onMessage: (String) -> Unit,
+        onProgress: (Int) -> Unit,
+        onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+        onCopyDecision: (copied: Boolean) -> Unit,
+        preserveSymbolicLinks: Boolean,
+    ) {
+        lastPreserveSymbolicLinks = preserveSymbolicLinks
+        copy(fromPath, toPath, ignores, onMessage)
     }
 
     override fun deleteOrphans(

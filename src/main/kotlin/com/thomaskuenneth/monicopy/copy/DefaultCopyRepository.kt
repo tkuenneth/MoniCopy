@@ -30,6 +30,7 @@ class DefaultCopyRepository : CopyRepository {
             .filter { it.isNotEmpty() && File(it).isDirectory }
         return CopyPreferences(
             deleteOrphans = prefs.getBoolean(DELETE_ORPHANS, false),
+            preserveSymbolicLinks = prefs.getBoolean(PRESERVE_SYMBOLIC_LINKS, true),
             sourceDir = prefs.get(KEY_FILE_FROM, "").takeIf { it.isNotEmpty() },
             destDir = prefs.get(KEY_FILE_TO, "").takeIf { it.isNotEmpty() },
             ignores = ignores,
@@ -38,14 +39,22 @@ class DefaultCopyRepository : CopyRepository {
 
     override fun saveSourceDir(path: String?) {
         prefs.put(KEY_FILE_FROM, path ?: "")
+        prefs.flush()
     }
 
     override fun saveDestDir(path: String?) {
         prefs.put(KEY_FILE_TO, path ?: "")
+        prefs.flush()
     }
 
     override fun saveDeleteOrphans(enabled: Boolean) {
         prefs.putBoolean(DELETE_ORPHANS, enabled)
+        prefs.flush()
+    }
+
+    override fun savePreserveSymbolicLinks(enabled: Boolean) {
+        prefs.putBoolean(PRESERVE_SYMBOLIC_LINKS, enabled)
+        prefs.flush()
     }
 
     override fun saveIgnores(ignores: List<String>) {
@@ -58,5 +67,6 @@ class DefaultCopyRepository : CopyRepository {
         private const val KEY_FILE_TO = "fileTo"
         private const val KEY_IGNORES = "ignores"
         private const val DELETE_ORPHANS = "deleteOrphanedFiles"
+        private const val PRESERVE_SYMBOLIC_LINKS = "preserveSymbolicLinks"
     }
 }

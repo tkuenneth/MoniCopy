@@ -35,6 +35,7 @@ interface CopyEngine {
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
+        preserveSymbolicLinks: Boolean = true,
     ) {
         copy(fromPath, toPath, ignores, onMessage)
     }

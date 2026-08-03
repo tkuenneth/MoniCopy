@@ -15,19 +15,14 @@
  */
 package com.thomaskuenneth.monicopy.copy
 
-data class CopyPreferences(
-    val sourceDir: String? = null,
-    val destDir: String? = null,
-    val ignores: List<String> = emptyList(),
-    val deleteOrphans: Boolean = false,
-    val preserveSymbolicLinks: Boolean = true,
-)
+import java.io.File
 
-interface CopyRepository {
-    fun load(): CopyPreferences
-    fun saveSourceDir(path: String?)
-    fun saveDestDir(path: String?)
-    fun saveDeleteOrphans(enabled: Boolean)
-    fun savePreserveSymbolicLinks(enabled: Boolean)
-    fun saveIgnores(ignores: List<String>)
+internal fun relativePathUnder(root: File, entry: File): String {
+    val rootPath = root.absolutePath
+    val entryPath = entry.absolutePath
+    var offset = rootPath.length
+    if (entryPath.length > offset && entryPath[offset] == File.separatorChar) {
+        offset += 1
+    }
+    return entryPath.substring(offset)
 }

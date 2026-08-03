@@ -16,6 +16,7 @@
 package com.thomaskuenneth.monicopy;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.TreeSet;
 
@@ -38,6 +39,9 @@ public class FolderMap {
     }
 
     private void _fill(File dir) {
+        if (Files.isSymbolicLink(dir.toPath())) {
+            return;
+        }
         if (dir.isDirectory()) {
             parents.add(dir);
             File[] files = dir.listFiles();

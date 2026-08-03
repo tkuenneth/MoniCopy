@@ -30,6 +30,7 @@ import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -146,6 +147,20 @@ val CopyEngineTests by testSuite(
             assertTrue(ws.source.resolve("keep.txt").isRegularFile())
         }
 
+        test("destination root is not deleted when it becomes empty") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            ws.dest.resolve("orphan.txt").writeBytes(byteArrayOf(9))
+            val orphanDir = ws.dest.resolve("empty-orphan").also { it.createDirectories() }
+            orphanDir.resolve("nested").createDirectories()
+
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+
+            assertTrue(ws.dest.exists())
+            assertTrue(Files.isDirectory(ws.dest))
+            assertFalse(ws.dest.resolve("orphan.txt").exists())
+            assertFalse(ws.dest.resolve("empty-orphan").exists())
+        }
+
         test("ignored destination directories are not scanned for orphans") { directory ->
             val ws = CopyEngineWorkspace(directory)
             ws.source.resolve("keep.txt").writeBytes(byteArrayOf(1))
@@ -164,23 +179,198 @@ val CopyEngineTests by testSuite(
             assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
         }
 
-        test("symbolic links are remembered but not copied") { directory ->
+        test("orphaned destination symbolic links are deleted") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            ws.source.resolve("keep.txt").writeBytes(byteArrayOf(1))
+            ws.dest.resolve("keep.txt").writeBytes(byteArrayOf(1))
+            val target = directory.resolve("link-target").also { it.createDirectories() }
+            target.resolve("payload.bin").writeBytes(byteArrayOf(9))
+            Files.createSymbolicLink(ws.dest.resolve("orphan-link"), target)
+
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+
+            assertFalse(Files.exists(ws.dest.resolve("orphan-link"), LinkOption.NOFOLLOW_LINKS))
+            assertTrue(target.resolve("payload.bin").isRegularFile())
+            assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
+        }
+
+        test("matching destination symbolic links are kept") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val target = directory.resolve("link-target").also { it.createDirectories() }
+            val sourceLink = Files.createSymbolicLink(ws.source.resolve("kept-link"), target)
+            Files.createSymbolicLink(ws.dest.resolve("kept-link"), target)
+
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+
+            val destLink = ws.dest.resolve("kept-link")
+            assertTrue(Files.isSymbolicLink(destLink))
+            assertEquals(Files.readSymbolicLink(sourceLink), Files.readSymbolicLink(destLink))
+        }
+
+        test("directory symbolic links are not followed when pruning orphan folders") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            ws.source.resolve("keep.txt").writeBytes(byteArrayOf(1))
+            ws.dest.resolve("keep.txt").writeBytes(byteArrayOf(1))
+            val outside = directory.resolve("outside").also { it.createDirectories() }
+            val outsideChild = outside.resolve("must-survive").also { it.createDirectories() }
+            outsideChild.resolve("nested").createDirectories()
+            Files.createSymbolicLink(ws.dest.resolve("trap"), outside)
+
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+
+            assertFalse(Files.exists(ws.dest.resolve("trap"), LinkOption.NOFOLLOW_LINKS))
+            assertTrue(outsideChild.exists())
+            assertTrue(outsideChild.resolve("nested").exists())
+        }
+
+        test("symbolic links are remembered and preserved when enabled") { directory ->
             val ws = CopyEngineWorkspace(directory)
             val targetDir = directory.resolve("link-target").also { it.createDirectories() }
             targetDir.resolve("via-link.txt").writeBytes(byteArrayOf(42, 17, 99))
             val link = Files.createSymbolicLink(ws.source.resolve("linked-dir"), targetDir)
             ws.source.resolve("regular.txt").writeBytes(byteArrayOf(1, 2, 3))
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = {},
+                preserveSymbolicLinks = true,
+            )
+
+            val destLink = ws.dest.resolve("linked-dir")
+            assertEquals(
+                listOf(link.toAbsolutePath().toString()),
+                ws.engine.rememberedSymbolicLinks.map { it.absolutePath },
+            )
+            assertTrue(Files.isSymbolicLink(destLink))
+            assertEquals(Files.readSymbolicLink(link), Files.readSymbolicLink(destLink))
+            assertContentEquals(byteArrayOf(1, 2, 3), ws.dest.resolve("regular.txt").readBytes())
+            assertTrue(targetDir.resolve("via-link.txt").isRegularFile())
+        }
+
+        test("symbolic links are remembered but not preserved when disabled") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val targetDir = directory.resolve("link-target").also { it.createDirectories() }
+            targetDir.resolve("via-link.txt").writeBytes(byteArrayOf(42, 17, 99))
+            val link = Files.createSymbolicLink(ws.source.resolve("linked-dir"), targetDir)
+            ws.source.resolve("regular.txt").writeBytes(byteArrayOf(1, 2, 3))
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = {},
+                preserveSymbolicLinks = false,
+            )
 
             assertEquals(
                 listOf(link.toAbsolutePath().toString()),
                 ws.engine.rememberedSymbolicLinks.map { it.absolutePath },
             )
-            assertFalse(ws.dest.resolve("linked-dir").exists())
-            assertFalse(ws.dest.resolve("linked-dir").resolve("via-link.txt").exists())
+            assertFalse(Files.exists(ws.dest.resolve("linked-dir"), LinkOption.NOFOLLOW_LINKS))
             assertContentEquals(byteArrayOf(1, 2, 3), ws.dest.resolve("regular.txt").readBytes())
-            assertTrue(targetDir.resolve("via-link.txt").isRegularFile())
+        }
+
+        test("relative symbolic link targets are preserved as-is") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            ws.source.resolve("target.txt").writeBytes(byteArrayOf(1, 2, 3))
+            val relativeTarget = Path.of("target.txt")
+            val link = Files.createSymbolicLink(ws.source.resolve("alias.txt"), relativeTarget)
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = {},
+                preserveSymbolicLinks = true,
+            )
+
+            val destLink = ws.dest.resolve("alias.txt")
+            assertTrue(Files.isSymbolicLink(destLink))
+            assertEquals(relativeTarget, Files.readSymbolicLink(link))
+            assertEquals(relativeTarget, Files.readSymbolicLink(destLink))
+            assertContentEquals(byteArrayOf(1, 2, 3), ws.dest.resolve("target.txt").readBytes())
+        }
+
+        test("file symbolic links are preserved by the engine") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val nested = ws.source.resolve("nested").also { it.createDirectories() }
+            val target = directory.resolve("payload.bin").also { it.writeBytes(byteArrayOf(7, 8, 9)) }
+            val link = Files.createSymbolicLink(nested.resolve("alias.bin"), target)
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = {},
+                preserveSymbolicLinks = true,
+            )
+
+            val destLink = ws.dest.resolve("nested/alias.bin")
+            assertTrue(Files.isSymbolicLink(destLink))
+            assertEquals(Files.readSymbolicLink(link), Files.readSymbolicLink(destLink))
+        }
+
+        test("ignored symbolic links are not preserved to the destination") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val target = directory.resolve("link-target").also { it.createDirectories() }
+            val ignoredLink = Files.createSymbolicLink(ws.source.resolve("ignored-link"), target)
+            Files.createSymbolicLink(ws.source.resolve("kept-link"), target)
+            ws.source.resolve("regular.txt").writeBytes(byteArrayOf(1))
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                listOf(ignoredLink.toAbsolutePath().toString()),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = {},
+                preserveSymbolicLinks = true,
+            )
+
+            assertFalse(Files.exists(ws.dest.resolve("ignored-link"), LinkOption.NOFOLLOW_LINKS))
+            assertTrue(Files.isSymbolicLink(ws.dest.resolve("kept-link")))
+            assertContentEquals(byteArrayOf(1), ws.dest.resolve("regular.txt").readBytes())
+        }
+
+        test("preserved symbolic link is removed by orphan deletion after source link is gone") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val target = directory.resolve("link-target").also { it.createDirectories() }
+            val sourceLink = Files.createSymbolicLink(ws.source.resolve("linked"), target)
+            ws.source.resolve("keep.txt").writeBytes(byteArrayOf(1))
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = {},
+                preserveSymbolicLinks = true,
+            )
+            assertTrue(Files.isSymbolicLink(ws.dest.resolve("linked")))
+
+            Files.delete(sourceLink)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+
+            assertFalse(Files.exists(ws.dest.resolve("linked"), LinkOption.NOFOLLOW_LINKS))
+            assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
+            assertTrue(target.exists())
         }
 
         test("mustBeCopied skips when size and modification time match") { directory ->

@@ -101,7 +101,12 @@ public class FileStore {
                 files.add(file);
             }
         } else {
-            symbolicLinks.add(file);
+            String absolutePath = file.getAbsolutePath();
+            if (!ignores.contains(absolutePath)) {
+                symbolicLinks.add(file);
+            } else {
+                LOGGER.log(Level.INFO, "Ignored {0}", new Object[]{absolutePath});
+            }
         }
         return files;
     }

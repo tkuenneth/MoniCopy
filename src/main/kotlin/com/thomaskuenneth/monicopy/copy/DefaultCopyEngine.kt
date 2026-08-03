@@ -31,6 +31,9 @@ import com.thomaskuenneth.monicopy.generated.resources.started_copying
 import com.thomaskuenneth.monicopy.generated.resources.started_deleting
 import org.koin.core.annotation.Single
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -47,6 +50,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
     @Volatile
     private var cancelled = false
     private val symbolicLinks = ArrayList<File>(FileStore.SYMBOLIC_LINKS_INITIAL_CAPACITY)
+    private val symbolicLinkPreserver = SymbolicLinkPreserver()
 
     internal val rememberedSymbolicLinks: List<File>
         get() = symbolicLinks
@@ -91,7 +95,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         ignores: List<String>,
         onMessage: (String) -> Unit,
     ) {
-        copy(fromPath, toPath, ignores, onMessage, onProgress = {}, onCounts = { _, _ -> }, onCopyDecision = {})
+        copy(fromPath, toPath, ignores, onMessage, onProgress = {}, onCounts = { _, _ -> }, onCopyDecision = {}, preserveSymbolicLinks = true)
     }
 
     override fun copy(
@@ -102,8 +106,9 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
+        preserveSymbolicLinks: Boolean,
     ) {
-        copy(File(fromPath), File(toPath), ignores, onMessage, onProgress, onCounts, onCopyDecision)
+        copy(File(fromPath), File(toPath), ignores, onMessage, onProgress, onCounts, onCopyDecision, preserveSymbolicLinks)
     }
 
     override fun deleteOrphans(
@@ -133,10 +138,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
+        preserveSymbolicLinks: Boolean,
     ) {
         cancelled = false
         try {
-            copyInternal(from, to, ignores, onMessage, onProgress, onCounts, onCopyDecision)
+            copyInternal(from, to, ignores, onMessage, onProgress, onCounts, onCopyDecision, preserveSymbolicLinks)
         } catch (_: CopyCancelledException) {
         }
     }
@@ -163,6 +169,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
+        preserveSymbolicLinks: Boolean,
     ) {
         val offset = from.absolutePath.length + 1
         onMessage(blockingGetString(Res.string.started_copying))
@@ -173,6 +180,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             onCounts(0L, 0L)
             reportInitialProgress(0L, onProgress)
             onMessage(blockingGetString(Res.string.finished_copying))
+            maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to, onMessage)
             return
         }
         val numberOfFiles = store.numberOfFiles
@@ -213,6 +221,21 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             )
         }
         onMessage(blockingGetString(Res.string.finished_copying))
+        maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to, onMessage)
+    }
+
+    private fun maybePreserveSymbolicLinks(
+        preserveSymbolicLinks: Boolean,
+        from: File,
+        to: File,
+        onMessage: (String) -> Unit,
+    ) {
+        if (!preserveSymbolicLinks) return
+        symbolicLinkPreserver.preserve(symbolicLinks, from, to) { source, message ->
+            onMessage(
+                blockingGetString(Res.string.could_not_copy, source.absolutePath, message),
+            )
+        }
     }
 
     private fun deleteOrphansInternal(
@@ -222,7 +245,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage: (String) -> Unit,
         onProgress: (Int) -> Unit,
     ) {
-        var offset = destDir.absolutePath.length
         onMessage(blockingGetString(Res.string.started_deleting))
         val store = fileStoreFactory()
         val files = store.fill(destDir, ignores)
@@ -239,29 +261,17 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         var lastReported = reportInitialProgress(total, onProgress)
         for (fileToDelete in files) {
             checkForPause()
-            val filename = fileToDelete.absolutePath
-            if (filename[offset] == File.separatorChar) {
-                offset += 1
-            }
-            val name = filename.substring(offset)
-            val sourceFile = File(sourceDir, name)
-            if (!sourceFile.exists()) {
-                if (!fileToDelete.delete()) {
-                    onMessage(
-                        blockingGetString(
-                            Res.string.could_not_delete,
-                            filename,
-                            sourceFile.absolutePath,
-                        ),
-                    )
-                }
-            }
+            deleteOrphanEntry(fileToDelete, sourceDir, destDir, onMessage)
             lastReported = reportSteppedProgress(
                 processed = ++processed,
                 total = total,
                 lastReported = lastReported,
                 onProgress = onProgress,
             )
+        }
+        for (linkToDelete in store.symbolicLinks) {
+            checkForPause()
+            deleteOrphanEntry(linkToDelete, sourceDir, destDir, onMessage)
         }
         for (folder in folders) {
             checkForPause()
@@ -271,9 +281,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             } else {
                 val children = folder.list()
                 if (children != null && children.isEmpty()) {
-                    logger.log(Level.INFO, "deleting directory $absolutePath")
-                    if (!folder.delete()) {
-                        onMessage(blockingGetString(Res.string.could_not_delete_path, absolutePath))
+                    if (folder.absoluteFile != destDir.absoluteFile) {
+                        logger.log(Level.INFO, "deleting directory $absolutePath")
+                        if (!folder.delete()) {
+                            onMessage(blockingGetString(Res.string.could_not_delete_path, absolutePath))
+                        }
                     }
                 }
             }
@@ -285,6 +297,30 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             )
         }
         onMessage(blockingGetString(Res.string.finished_deleting))
+    }
+
+    private fun deleteOrphanEntry(
+        destEntry: File,
+        sourceDir: File,
+        destDir: File,
+        onMessage: (String) -> Unit,
+    ) {
+        val name = relativePathUnder(destDir, destEntry)
+        val sourceEntry = File(sourceDir, name)
+        if (Files.exists(sourceEntry.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+            return
+        }
+        try {
+            Files.delete(destEntry.toPath())
+        } catch (_: IOException) {
+            onMessage(
+                blockingGetString(
+                    Res.string.could_not_delete,
+                    destEntry.absolutePath,
+                    sourceEntry.absolutePath,
+                ),
+            )
+        }
     }
 
     private fun collectFolders(base: File): List<File> {

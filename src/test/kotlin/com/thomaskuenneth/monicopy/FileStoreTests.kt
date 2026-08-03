@@ -59,6 +59,21 @@ val FileStoreTests by testSuite(
             assertEquals(listOf(link.absolutePath), store.symbolicLinks.map { it.absolutePath })
         }
 
+        test("ignored symbolic links are not collected when scanning") { directory ->
+            val root = directory.resolve("scan-root").also { it.createDirectories() }
+            val kept = root.resolve("kept.txt").also { it.writeText("ok") }.toFile()
+            val target = directory.resolve("link-target").also { it.createDirectories() }
+            val ignoredLink = Files.createSymbolicLink(root.resolve("ignored-link"), target).toFile()
+            Files.createSymbolicLink(root.resolve("kept-link"), target)
+
+            val store = FileStore(null)
+            val files = store.fill(root.toFile(), listOf(ignoredLink.absolutePath))
+
+            assertEquals(1, files.size)
+            assertEquals(kept.absolutePath, files.single().absolutePath)
+            assertEquals(listOf(root.resolve("kept-link").toFile().absolutePath), store.symbolicLinks.map { it.absolutePath })
+        }
+
         test("fill with null file returns null") {
             val store = FileStore(null)
             assertNull(store.fill(null, emptyList()))

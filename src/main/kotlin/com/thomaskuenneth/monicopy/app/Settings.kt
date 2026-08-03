@@ -32,6 +32,8 @@ import org.jetbrains.compose.resources.stringResource
 fun Settings(
     uiState: AppUiState,
     viewModel: AppViewModel,
+    preserveSymbolicLinks: Boolean,
+    onPreserveSymbolicLinksChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val onClick: (ColorSchemeMode) -> Unit = { viewModel.setColorSchemeMode(it) }
@@ -65,11 +67,18 @@ fun Settings(
                 onClick = onClick,
             )
         }
-        if (uiState.showExtendedAboutDialogCheckbox) {
+        Column(horizontalAlignment = Alignment.Start) {
+            if (uiState.showExtendedAboutDialogCheckbox) {
+                CheckboxWithLabel(
+                    label = stringResource(Res.string.show_extended_about_dialog),
+                    checked = uiState.showExtendedAboutDialog,
+                ) { checked -> viewModel.setShowExtendedAboutDialog(checked) }
+            }
             CheckboxWithLabel(
-                label = stringResource(Res.string.show_extended_about_dialog),
-                checked = uiState.showExtendedAboutDialog,
-            ) { checked -> viewModel.setShowExtendedAboutDialog(checked) }
+                label = stringResource(Res.string.preserve_symbolic_links),
+                checked = preserveSymbolicLinks,
+                onCheckedChange = onPreserveSymbolicLinksChanged,
+            )
         }
     }
 }

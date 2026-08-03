@@ -33,6 +33,8 @@ import com.thomaskuenneth.monicopy.app.Settings
 fun AppBottomSheets(
     appViewModel: AppViewModel,
     appUiState: AppUiState,
+    preserveSymbolicLinks: Boolean,
+    onPreserveSymbolicLinksChanged: (Boolean) -> Unit,
 ) {
     if (appUiState.aboutVisibility == SheetVisibility.Visible) {
         AppBottomSheet(onDismiss = { appViewModel.showAboutSheet(false) }) {
@@ -44,6 +46,8 @@ fun AppBottomSheets(
             Settings(
                 uiState = appUiState,
                 viewModel = appViewModel,
+                preserveSymbolicLinks = preserveSymbolicLinks,
+                onPreserveSymbolicLinksChanged = onPreserveSymbolicLinksChanged,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
