@@ -181,10 +181,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             if (mustBeCopied(fileToCopy, destination)) {
                 onCopyDecision(true)
                 val readFromBuffer = mdFrom.canReadFromBuffer()
-                logger.log(
-                    Level.INFO,
-                    "copying ${fileToCopy.absolutePath} (readFromBuffer is $readFromBuffer)",
-                )
                 val ok = if (readFromBuffer) {
                     copier.copy(mdFrom.buffer, mdFrom.lengthOfFile, destination)
                 } else {
@@ -203,7 +199,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 }
             } else {
                 onCopyDecision(false)
-                logger.log(Level.INFO, "no need to copy")
             }
             lastReported = reportSteppedProgress(
                 processed = ++numberOfProcessedFiles,
