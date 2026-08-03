@@ -371,6 +371,61 @@ val CopyEngineTests by testSuite(
             assertTrue(target.exists())
         }
 
+        test("preserves a symbolic link by replacing an existing destination file") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val target = ws.root.resolve("link-target").also { it.createDirectories() }
+            val link = Files.createSymbolicLink(ws.source.resolve("linked"), target)
+            ws.dest.resolve("linked").writeBytes(byteArrayOf(7, 8, 9))
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = {},
+                preserveSymbolicLinks = true,
+            )
+
+            val destLink = ws.dest.resolve("linked")
+            assertTrue(Files.isSymbolicLink(destLink))
+            assertEquals(Files.readSymbolicLink(link), Files.readSymbolicLink(destLink))
+            assertFalse(Files.isRegularFile(destLink, LinkOption.NOFOLLOW_LINKS))
+        }
+
+        test("preserves symbolic links when the source contains only links") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val target = ws.root.resolve("link-target").also { it.createDirectories() }
+            val dirLink = Files.createSymbolicLink(ws.source.resolve("linked-dir"), target)
+            val fileLink = Files.createSymbolicLink(ws.source.resolve("alias.txt"), Path.of("missing.txt"))
+            var fileCount: Long? = null
+            var subfolderCount: Long? = null
+
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { files, folders ->
+                    fileCount = files
+                    subfolderCount = folders
+                },
+                onCopyDecision = {},
+                preserveSymbolicLinks = true,
+            )
+
+            assertEquals(0L, fileCount)
+            assertEquals(0L, subfolderCount)
+            assertEquals(2, ws.engine.rememberedSymbolicLinks.size)
+            assertTrue(Files.isSymbolicLink(ws.dest.resolve("linked-dir")))
+            assertEquals(Files.readSymbolicLink(dirLink), Files.readSymbolicLink(ws.dest.resolve("linked-dir")))
+            assertTrue(Files.isSymbolicLink(ws.dest.resolve("alias.txt")))
+            assertEquals(Files.readSymbolicLink(fileLink), Files.readSymbolicLink(ws.dest.resolve("alias.txt")))
+            assertFalse(Files.exists(ws.dest.resolve("alias.txt")))
+        }
+
         test("zero-byte files are copied") { directory ->
             val ws = CopyEngineWorkspace(directory)
             ws.source.resolve("empty.bin").writeBytes(byteArrayOf())
@@ -458,6 +513,41 @@ val CopyEngineTests by testSuite(
                 assertTrue(ws.dest.resolve("orphan-a.txt").exists())
                 assertTrue(ws.dest.resolve("orphan-b.txt").exists())
             } finally {
+                ws.engine.resume()
+            }
+        }
+
+        test("delete orphans waits while paused and completes after resume") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            ws.source.resolve("keep.txt").writeBytes(byteArrayOf(1))
+            ws.dest.resolve("keep.txt").writeBytes(byteArrayOf(1))
+            ws.dest.resolve("orphan-a.txt").writeBytes(byteArrayOf(9))
+            ws.dest.resolve("orphan-b.txt").writeBytes(byteArrayOf(8))
+
+            val state = AtomicReference(CopyState.DELETE_PAUSED)
+            ws.engine.copyStateProvider = { state.get() }
+            val done = CountDownLatch(1)
+            val worker = thread(name = "delete-pause-test", isDaemon = true) {
+                try {
+                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws::ignoreMessages)
+                } finally {
+                    done.countDown()
+                }
+            }
+
+            try {
+                assertTrue(awaitThreadState(worker, Thread.State.WAITING))
+                assertTrue(ws.dest.resolve("orphan-a.txt").exists())
+                assertTrue(ws.dest.resolve("orphan-b.txt").exists())
+
+                state.set(CopyState.DELETING)
+                ws.engine.resume()
+                assertTrue(done.await(30, TimeUnit.SECONDS))
+                assertFalse(ws.dest.resolve("orphan-a.txt").exists())
+                assertFalse(ws.dest.resolve("orphan-b.txt").exists())
+                assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
+            } finally {
+                state.set(CopyState.DELETING)
                 ws.engine.resume()
             }
         }
