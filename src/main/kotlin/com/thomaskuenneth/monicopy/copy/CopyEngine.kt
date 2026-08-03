@@ -34,6 +34,7 @@ interface CopyEngine {
         onMessage: (String) -> Unit,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+        onCopyDecision: (copied: Boolean) -> Unit,
     ) {
         copy(fromPath, toPath, ignores, onMessage)
     }

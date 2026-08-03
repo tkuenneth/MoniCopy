@@ -87,7 +87,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         ignores: List<String>,
         onMessage: (String) -> Unit,
     ) {
-        copy(fromPath, toPath, ignores, onMessage, onProgress = {}, onCounts = { _, _ -> })
+        copy(fromPath, toPath, ignores, onMessage, onProgress = {}, onCounts = { _, _ -> }, onCopyDecision = {})
     }
 
     override fun copy(
@@ -97,8 +97,9 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage: (String) -> Unit,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+        onCopyDecision: (copied: Boolean) -> Unit,
     ) {
-        copy(File(fromPath), File(toPath), ignores, onMessage, onProgress, onCounts)
+        copy(File(fromPath), File(toPath), ignores, onMessage, onProgress, onCounts, onCopyDecision)
     }
 
     override fun deleteOrphans(
@@ -127,10 +128,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage: (String) -> Unit,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+        onCopyDecision: (copied: Boolean) -> Unit,
     ) {
         cancelled = false
         try {
-            copyInternal(from, to, ignores, onMessage, onProgress, onCounts)
+            copyInternal(from, to, ignores, onMessage, onProgress, onCounts, onCopyDecision)
         } catch (_: CopyCancelledException) {
         }
     }
@@ -156,6 +158,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage: (String) -> Unit,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
+        onCopyDecision: (copied: Boolean) -> Unit,
     ) {
         val offset = from.absolutePath.length + 1
         onMessage(blockingGetString(Res.string.started_copying))
@@ -176,6 +179,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             checkForPause()
             val destination = File(to, fileToCopy.absolutePath.substring(offset))
             if (mustBeCopied(fileToCopy, destination)) {
+                onCopyDecision(true)
                 val readFromBuffer = mdFrom.canReadFromBuffer()
                 logger.log(
                     Level.INFO,
@@ -198,6 +202,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                     destination.setLastModified(fileToCopy.lastModified())
                 }
             } else {
+                onCopyDecision(false)
                 logger.log(Level.INFO, "no need to copy")
             }
             lastReported = reportSteppedProgress(

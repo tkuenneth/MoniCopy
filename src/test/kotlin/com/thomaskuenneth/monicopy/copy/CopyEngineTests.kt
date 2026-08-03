@@ -350,16 +350,40 @@ val CopyEngineTests by testSuite(
                 emptyList(),
                 messages::add,
                 progress::add,
-            ) { files, folders ->
-                fileCount = files
-                subfolderCount = folders
-            }
+                { files, folders ->
+                    fileCount = files
+                    subfolderCount = folders
+                },
+                onCopyDecision = {},
+            )
 
             assertEquals(0L, fileCount)
             assertEquals(0L, subfolderCount)
             assertEquals(listOf(100), progress)
             assertEquals(started, messages.first())
             assertEquals(finished, messages.last())
+        }
+
+        test("onCopyDecision reports copied and skipped files") { directory ->
+            val ws = CopyEngineWorkspace(directory)
+            val sourceFile = ws.source.resolve("same.bin").also { it.writeBytes(byteArrayOf(1, 2, 3, 4, 5)) }
+            val destFile = ws.dest.resolve("same.bin").also { it.writeBytes(byteArrayOf(9, 8, 7, 6, 5)) }
+            destFile.toFile().setLastModified(sourceFile.toFile().lastModified())
+            ws.source.resolve("new.bin").writeBytes(byteArrayOf(7, 8, 9))
+
+            val decisions = mutableListOf<Boolean>()
+            ws.engine.copy(
+                ws.source.toString(),
+                ws.dest.toString(),
+                emptyList(),
+                ws::ignoreMessages,
+                onProgress = {},
+                onCounts = { _, _ -> },
+                onCopyDecision = decisions::add,
+            )
+
+            assertEquals(1, decisions.count { it })
+            assertEquals(1, decisions.count { !it })
         }
 
         test("deleteOrphans still finishes when file scan returns null") { directory ->

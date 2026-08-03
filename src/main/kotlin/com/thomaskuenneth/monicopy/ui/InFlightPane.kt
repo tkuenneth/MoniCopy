@@ -147,13 +147,14 @@ fun InFlightPane(uiState: CopyUiState) {
                     ) { status ->
                         when (status) {
                             DiscoveryStatus.Finding -> {
+                                val label = stringResource(Res.string.find_files)
                                 ScanningStatus(
-                                    label = stringResource(Res.string.find_files),
+                                    label = label,
                                     paused = uiState.isPaused,
                                     contentDescription = if (uiState.isPaused) {
                                         stringResource(Res.string.finding_files_paused_a11y)
                                     } else {
-                                        stringResource(Res.string.find_files)
+                                        label
                                     },
                                 )
                             }
@@ -198,8 +199,11 @@ fun InFlightPane(uiState: CopyUiState) {
                             }
                             CopyPhaseStatus.Complete -> {
                                 PhaseCompleteStatus(
-                                    text = stringResource(Res.string.copying_complete),
-                                    contentDescription = stringResource(Res.string.copying_complete),
+                                    text = stringResource(
+                                        Res.string.copying_complete,
+                                        uiState.filesCopied,
+                                        uiState.filesSkipped,
+                                    ),
                                 )
                             }
                         }
@@ -223,13 +227,14 @@ fun InFlightPane(uiState: CopyUiState) {
                     ) { status ->
                         when (status) {
                             OrphanPhaseStatus.Finding -> {
+                                val label = stringResource(Res.string.find_orphans)
                                 ScanningStatus(
-                                    label = stringResource(Res.string.find_orphans),
+                                    label = label,
                                     paused = uiState.isPaused,
                                     contentDescription = if (uiState.isPaused) {
                                         stringResource(Res.string.finding_orphans_paused_a11y)
                                     } else {
-                                        stringResource(Res.string.find_orphans)
+                                        label
                                     },
                                 )
                             }
@@ -243,7 +248,6 @@ fun InFlightPane(uiState: CopyUiState) {
                             OrphanPhaseStatus.Complete -> {
                                 PhaseCompleteStatus(
                                     text = stringResource(Res.string.deleting_complete),
-                                    contentDescription = stringResource(Res.string.deleting_complete),
                                 )
                             }
                         }
@@ -278,7 +282,6 @@ fun InFlightPane(uiState: CopyUiState) {
 @Composable
 private fun PhaseCompleteStatus(
     text: String,
-    contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
     Text(
@@ -288,7 +291,7 @@ private fun PhaseCompleteStatus(
         textAlign = TextAlign.Center,
         modifier = modifier
             .fillMaxWidth()
-            .semantics { this.contentDescription = contentDescription },
+            .semantics { contentDescription = text },
     )
 }
 

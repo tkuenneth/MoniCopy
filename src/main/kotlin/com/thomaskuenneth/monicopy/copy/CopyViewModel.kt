@@ -55,6 +55,8 @@ data class CopyUiState(
     val subfolderCount: Long? = null,
     val copyPhaseComplete: Boolean = false,
     val orphanPhaseComplete: Boolean = false,
+    val filesCopied: Long = 0,
+    val filesSkipped: Long = 0,
 ) {
     val isOperationMode: Boolean
         get() = copyState != CopyState.IDLE
@@ -79,6 +81,8 @@ data class CopyUiState(
         subfolderCount = null,
         copyPhaseComplete = false,
         orphanPhaseComplete = false,
+        filesCopied = 0,
+        filesSkipped = 0,
     )
 }
 
@@ -180,7 +184,15 @@ class CopyViewModel(
                 mutate { it.withClearedOperationUi(CopyState.COPYING) }
                 viewModelScope.launch(Dispatchers.Default) {
                     val ignores = _uiState.value.ignores.map { it.absolutePath }
-                    engine.copy(from, to, ignores, ::appendLog, ::onCopyProgress, ::onCounts)
+                    engine.copy(
+                        from,
+                        to,
+                        ignores,
+                        ::appendLog,
+                        ::onCopyProgress,
+                        ::onCounts,
+                        ::onCopyDecision,
+                    )
                     if (_uiState.value.copyState == CopyState.IDLE) return@launch
                     nextStep()
                 }
@@ -248,6 +260,16 @@ class CopyViewModel(
 
     private fun onCounts(fileCount: Long, subfolderCount: Long) {
         mutate { it.copy(fileCount = fileCount, subfolderCount = subfolderCount) }
+    }
+
+    private fun onCopyDecision(copied: Boolean) {
+        mutate { state ->
+            if (copied) {
+                state.copy(filesCopied = state.filesCopied + 1)
+            } else {
+                state.copy(filesSkipped = state.filesSkipped + 1)
+            }
+        }
     }
 
     private fun nextStep() {
