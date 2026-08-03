@@ -94,8 +94,6 @@ public class FileStore {
                             fill(child, ignores);
                         }
                     }
-                } else {
-                    LOGGER.log(Level.INFO, "Ignored {0}", new Object[]{absolutePath});
                 }
             } else if (file.isFile()) {
                 files.add(file);
@@ -104,8 +102,6 @@ public class FileStore {
             String absolutePath = file.getAbsolutePath();
             if (!ignores.contains(absolutePath)) {
                 symbolicLinks.add(file);
-            } else {
-                LOGGER.log(Level.INFO, "Ignored {0}", new Object[]{absolutePath});
             }
         }
         return files;

@@ -77,13 +77,10 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             val state = copyStateProvider()
             if (state == CopyState.COPY_PAUSED || state == CopyState.DELETE_PAUSED) {
                 try {
-                    logger.log(Level.INFO, "pausing")
                     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
                     (lock as Object).wait()
                 } catch (ex: InterruptedException) {
                     logger.log(Level.SEVERE, "interruption while waiting to resume", ex)
-                } finally {
-                    logger.log(Level.INFO, "resuming")
                 }
             }
         }
@@ -282,7 +279,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 val children = folder.list()
                 if (children != null && children.isEmpty()) {
                     if (folder.absoluteFile != destDir.absoluteFile) {
-                        logger.log(Level.INFO, "deleting directory $absolutePath")
                         if (!folder.delete()) {
                             onMessage(blockingGetString(Res.string.could_not_delete_path, absolutePath))
                         }
@@ -370,16 +366,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
     private fun mustBeCopied(fileToCopy: File, destination: File): Boolean {
         mdFrom.reset()
         if (!destination.exists()) {
-            logger.log(Level.INFO, "not found in destination")
             return true
         }
         val lenFileToCopy = fileToCopy.length()
         val lenDestination = destination.length()
         if (lenFileToCopy != lenDestination) {
-            logger.log(
-                Level.INFO,
-                "different size in destination: $lenFileToCopy != $lenDestination",
-            )
             return true
         }
         val lastModifiedSource = fileToCopy.lastModified()
@@ -387,10 +378,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         if (lastModifiedSource == lastModifiedDest) {
             return false
         }
-        logger.log(
-            Level.INFO,
-            "different modification date: %tc != %tc".format(lastModifiedSource, lastModifiedDest),
-        )
         val tFrom = Thread {
             sbFrom.setLength(0)
             mdFrom.getChecksum(fileToCopy)?.let { sbFrom.append(it) }
@@ -409,18 +396,9 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             return true
         }
         val copy = sbFrom.toString() != sbTo.toString()
-        if (copy) {
-            logger.log(
-                Level.INFO,
-                "different md5 hashes: $sbFrom != $sbTo",
-            )
-        } else {
+        if (!copy) {
             try {
-                val succeeded = destination.setLastModified(fileToCopy.lastModified())
-                logger.log(
-                    Level.INFO,
-                    "${destination.absolutePath} setLastModified(): $succeeded",
-                )
+                destination.setLastModified(fileToCopy.lastModified())
             } catch (e: IllegalArgumentException) {
                 logger.log(Level.SEVERE, "setLastModified()", e)
             }

@@ -52,9 +52,7 @@ public class FileCopier {
         long num;
         long buflen = buffer.length;
         File parent = to.getParentFile();
-        var created = parent.mkdirs();
-        LOGGER.log(Level.INFO, String.format("%s created: %b",
-                parent.getAbsolutePath(), created));
+        parent.mkdirs();
         try (FileInputStream in = new FileInputStream(from);
              FileOutputStream out = new FileOutputStream(to)) {
             while ((num = (lenFrom - read)) > 0) {
@@ -80,9 +78,7 @@ public class FileCopier {
             return false;
         }
         File parent = to.getParentFile();
-        var created = parent.mkdirs();
-        LOGGER.log(Level.INFO, String.format("%s created: %b",
-                parent.getAbsolutePath(), created));
+        parent.mkdirs();
         try (FileOutputStream out = new FileOutputStream(to)) {
             out.write(from, 0, (int) lenFrom);
         } catch (IOException e) {
