@@ -18,7 +18,6 @@
 package com.thomaskuenneth.monicopy.copy
 
 import com.thomaskuenneth.monicopy.temporaryDirectoryFixture
-import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -30,9 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-val SymbolicLinkPreserverTests by testSuite(
-    compartment = { TestCompartment.Concurrent },
-) {
+val SymbolicLinkPreserverTests by testSuite {
     temporaryDirectoryFixture().asParameterForEach {
         test("preserves a relative symbolic link target as-is") { directory ->
             val from = directory.resolve("from").also { it.createDirectories() }
@@ -125,6 +122,25 @@ val SymbolicLinkPreserverTests by testSuite(
 
             assertEquals(listOf("regular.txt"), errors)
             assertFalse(Files.exists(to.resolve("regular.txt"), LinkOption.NOFOLLOW_LINKS))
+        }
+
+        test("preserves a dangling symbolic link without requiring the target") { directory ->
+            val from = directory.resolve("from").also { it.createDirectories() }
+            val to = directory.resolve("to").also { it.createDirectories() }
+            val relativeTarget = Path.of("does-not-exist")
+            val link = Files.createSymbolicLink(from.resolve("dangling"), relativeTarget)
+
+            SymbolicLinkPreserver().preserve(
+                links = listOf(link.toFile()),
+                fromRoot = from.toFile(),
+                toRoot = to.toFile(),
+                onError = { _, _ -> error("unexpected error") },
+            )
+
+            val destLink = to.resolve("dangling")
+            assertTrue(Files.isSymbolicLink(destLink))
+            assertEquals(relativeTarget, Files.readSymbolicLink(destLink))
+            assertFalse(Files.exists(destLink))
         }
     }
 }

@@ -28,27 +28,26 @@ import kotlin.io.path.deleteRecursively
 
 fun TestSuiteScope.temporaryDirectoryFixture(
     prefix: String = "${testSuiteInScope.testElementPath}-",
-): TestFixture<Path> {
+): TestFixture<Path> = temporaryDirectoryBasedFixture(
+    prefix = prefix,
+    create = { it },
+    directoryOf = { it },
+)
+
+fun <T : Any> TestSuiteScope.temporaryDirectoryBasedFixture(
+    prefix: String = "${testSuiteInScope.testElementPath}-",
+    create: (Path) -> T,
+    directoryOf: (T) -> Path,
+): TestFixture<T> {
     val root = Path("build/tmp").also { Files.createDirectories(it) }
     return testFixture {
-        Files.createTempDirectory(root, prefix)
+        create(Files.createTempDirectory(root, prefix))
     } closeWith { testsSucceeded ->
+        val directory = directoryOf(this)
         if (testsSucceeded || testPlatform.environment("CI") != null) {
-            deleteRecursively()
+            directory.deleteRecursively()
         } else {
-            println("Temporary directory: file://${toAbsolutePath()}")
+            println("Temporary directory: file://${directory.toAbsolutePath()}")
         }
-    }
-}
-
-fun TestSuiteScope.javaTemporaryDirectoryFixture(
-    prefix: String = "monicopy-",
-): TestFixture<Path> = testFixture {
-    Files.createTempDirectory(prefix)
-} closeWith { testsSucceeded ->
-    if (testsSucceeded || testPlatform.environment("CI") != null) {
-        deleteRecursively()
-    } else {
-        println("Temporary directory: file://${toAbsolutePath()}")
     }
 }

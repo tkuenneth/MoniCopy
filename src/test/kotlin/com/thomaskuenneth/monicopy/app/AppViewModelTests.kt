@@ -17,15 +17,12 @@ package com.thomaskuenneth.monicopy.app
 
 import com.thomaskuenneth.monicopy.platform.OperatingSystem
 import com.thomaskuenneth.monicopy.platform.PlatformInfo
-import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-val AppViewModelTests by testSuite(
-    compartment = { TestCompartment.Concurrent },
-) {
+val AppViewModelTests by testSuite {
     testFixture {
         AppViewModelHarness()
     } asParameterForEach {

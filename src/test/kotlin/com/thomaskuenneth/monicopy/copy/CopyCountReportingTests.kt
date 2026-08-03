@@ -33,7 +33,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 val CopyCountReportingTests by testSuite(
-    compartment = { TestCompartment.Concurrent },
+    compartment = { TestCompartment.Sequential },
 ) {
     temporaryDirectoryFixture().asParameterForEach {
         val cases = mapOf(
@@ -43,35 +43,30 @@ val CopyCountReportingTests by testSuite(
 
         for ((label, deleteOrphans) in cases) {
             test("reports file and folder counts $label") { directory ->
-                val source = directory.resolve("source").also { it.createDirectories() }
-                val dest = directory.resolve("dest").also { it.createDirectories() }
-                val engine = DefaultCopyEngine().apply {
-                    copyStateProvider = { CopyState.COPYING }
-                }
-
+                val ws = CopyEngineWorkspace(directory)
                 // 3 regular files, 2 subfolders, 2 symbolic links (must not inflate fileCount)
-                source.resolve("root.txt").writeBytes(byteArrayOf(1))
-                val docs = source.resolve("docs").also { it.createDirectories() }
+                ws.source.resolve("root.txt").writeBytes(byteArrayOf(1))
+                val docs = ws.source.resolve("docs").also { it.createDirectories() }
                 docs.resolve("readme.txt").writeBytes(byteArrayOf(2))
                 val images = docs.resolve("images").also { it.createDirectories() }
                 images.resolve("photo.bin").writeBytes(byteArrayOf(3))
-                val linkTarget = directory.resolve("link-target").also { it.createDirectories() }
-                Files.createSymbolicLink(source.resolve("linked-dir"), linkTarget)
-                Files.createSymbolicLink(source.resolve("alias.txt"), Path.of("root.txt"))
+                val linkTarget = ws.root.resolve("link-target").also { it.createDirectories() }
+                Files.createSymbolicLink(ws.source.resolve("linked-dir"), linkTarget)
+                Files.createSymbolicLink(ws.source.resolve("alias.txt"), Path.of("root.txt"))
 
                 if (deleteOrphans) {
-                    dest.resolve("orphan.txt").writeBytes(byteArrayOf(9))
-                    dest.resolve("orphan-dir").also { it.createDirectories() }.resolve("gone.txt").writeBytes(byteArrayOf(8))
-                    Files.createSymbolicLink(dest.resolve("orphan-link"), linkTarget)
+                    ws.dest.resolve("orphan.txt").writeBytes(byteArrayOf(9))
+                    ws.dest.resolve("orphan-dir").also { it.createDirectories() }.resolve("gone.txt").writeBytes(byteArrayOf(8))
+                    Files.createSymbolicLink(ws.dest.resolve("orphan-link"), linkTarget)
                 }
 
                 var fileCount: Long? = null
                 var subfolderCount: Long? = null
                 val decisions = mutableListOf<Boolean>()
 
-                engine.copy(
-                    source.toString(),
-                    dest.toString(),
+                ws.engine.copy(
+                    ws.source.toString(),
+                    ws.dest.toString(),
                     emptyList(),
                     onMessage = {},
                     onProgress = {},
@@ -87,23 +82,23 @@ val CopyCountReportingTests by testSuite(
                 assertEquals(2L, subfolderCount)
                 assertEquals(3, decisions.size)
                 assertTrue(decisions.all { it })
-                assertEquals(2, engine.rememberedSymbolicLinks.size)
+                assertEquals(2, ws.engine.rememberedSymbolicLinks.size)
 
                 if (deleteOrphans) {
-                    engine.copyStateProvider = { CopyState.DELETING }
-                    engine.deleteOrphans(source.toString(), dest.toString(), emptyList(), onMessage = {})
+                    ws.engine.copyStateProvider = { CopyState.DELETING }
+                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), onMessage = {})
                 }
 
-                assertTrue(dest.resolve("root.txt").isRegularFile())
-                assertTrue(dest.resolve("docs/readme.txt").isRegularFile())
-                assertTrue(dest.resolve("docs/images/photo.bin").isRegularFile())
-                assertTrue(Files.isSymbolicLink(dest.resolve("linked-dir")))
-                assertTrue(Files.isSymbolicLink(dest.resolve("alias.txt")))
+                assertTrue(ws.dest.resolve("root.txt").isRegularFile())
+                assertTrue(ws.dest.resolve("docs/readme.txt").isRegularFile())
+                assertTrue(ws.dest.resolve("docs/images/photo.bin").isRegularFile())
+                assertTrue(Files.isSymbolicLink(ws.dest.resolve("linked-dir")))
+                assertTrue(Files.isSymbolicLink(ws.dest.resolve("alias.txt")))
 
                 if (deleteOrphans) {
-                    assertFalse(dest.resolve("orphan.txt").exists())
-                    assertFalse(dest.resolve("orphan-dir").exists())
-                    assertFalse(Files.exists(dest.resolve("orphan-link"), LinkOption.NOFOLLOW_LINKS))
+                    assertFalse(ws.dest.resolve("orphan.txt").exists())
+                    assertFalse(ws.dest.resolve("orphan-dir").exists())
+                    assertFalse(Files.exists(ws.dest.resolve("orphan-link"), LinkOption.NOFOLLOW_LINKS))
                 }
             }
         }

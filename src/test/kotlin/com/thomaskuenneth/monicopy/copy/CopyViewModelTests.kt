@@ -17,9 +17,11 @@ package com.thomaskuenneth.monicopy.copy
 
 import com.thomaskuenneth.monicopy.platform.DirectoryChooser
 import com.thomaskuenneth.monicopy.platform.LogTimeFormatter
-import com.thomaskuenneth.monicopy.temporaryDirectoryFixture
+import com.thomaskuenneth.monicopy.temporaryDirectoryBasedFixture
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestFixture
+import de.infix.testBalloon.framework.core.TestSuiteScope
 import de.infix.testBalloon.framework.core.testScope
 import de.infix.testBalloon.framework.core.testSuite
 import java.nio.file.Path
@@ -41,9 +43,8 @@ val CopyViewModelTests by testSuite(
         )
     },
 ) {
-    temporaryDirectoryFixture().asParameterForEach {
-        test("copy then delete orphans reaches FINISHED") { directory ->
-            val harness = CopyViewModelHarness(directory)
+    copyViewModelHarnessFixture().asParameterForEach {
+        test("copy then delete orphans reaches FINISHED") { harness ->
             harness.viewModel.onActionButtonClick()
 
             withTimeout(5.seconds) {
@@ -53,8 +54,7 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf("copy", "deleteOrphans"), harness.engine.calls)
         }
 
-        test("copy without delete orphans reaches FINISHED") { directory ->
-            val harness = CopyViewModelHarness(directory)
+        test("copy without delete orphans reaches FINISHED") { harness ->
             harness.viewModel.onDeleteOrphansChanged(false)
             assertEquals(listOf(false), harness.repository.savedDeleteOrphans)
 
@@ -67,8 +67,7 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf("copy"), harness.engine.calls)
         }
 
-        test("cancel during copy returns to IDLE") { directory ->
-            val harness = CopyViewModelHarness(directory)
+        test("cancel during copy returns to IDLE") { harness ->
             harness.engine.blockCopy = true
             harness.viewModel.onActionButtonClick()
             assertTrue(harness.engine.copyEntered.await(5, TimeUnit.SECONDS))
@@ -81,8 +80,7 @@ val CopyViewModelTests by testSuite(
             assertTrue(harness.engine.copyFinished.await(5, TimeUnit.SECONDS))
         }
 
-        test("pause and continue during copy") { directory ->
-            val harness = CopyViewModelHarness(directory)
+        test("pause and continue during copy") { harness ->
             harness.engine.blockCopy = true
             harness.viewModel.onActionButtonClick()
             assertTrue(harness.engine.copyEntered.await(5, TimeUnit.SECONDS))
@@ -100,8 +98,7 @@ val CopyViewModelTests by testSuite(
             }
         }
 
-        test("pause and continue during delete orphans") { directory ->
-            val harness = CopyViewModelHarness(directory)
+        test("pause and continue during delete orphans") { harness ->
             harness.engine.blockDelete = true
             harness.viewModel.onActionButtonClick()
             assertTrue(harness.engine.deleteEntered.await(5, TimeUnit.SECONDS))
@@ -121,9 +118,8 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf("copy", "deleteOrphans"), harness.engine.calls)
         }
 
-        test("add and remove ignored directories persist through the repository") { directory ->
-            val harness = CopyViewModelHarness(directory)
-            val ignorePath = directory.resolve("ignored").also { it.createDirectories() }.toFile().absolutePath
+        test("add and remove ignored directories persist through the repository") { harness ->
+            val ignorePath = harness.directory.resolve("ignored").also { it.createDirectories() }.toFile().absolutePath
             harness.directoryChooser.enqueue(ignorePath)
 
             harness.viewModel.addIgnore()
@@ -140,10 +136,9 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf(listOf(ignorePath), emptyList()), harness.repository.savedIgnores)
         }
 
-        test("selecting source and destination updates state and repository") { directory ->
-            val harness = CopyViewModelHarness(directory)
-            val source = directory.resolve("picked-source").also { it.createDirectories() }.toFile().absolutePath
-            val dest = directory.resolve("picked-dest").also { it.createDirectories() }.toFile().absolutePath
+        test("selecting source and destination updates state and repository") { harness ->
+            val source = harness.directory.resolve("picked-source").also { it.createDirectories() }.toFile().absolutePath
+            val dest = harness.directory.resolve("picked-dest").also { it.createDirectories() }.toFile().absolutePath
             harness.directoryChooser.enqueue(source, dest)
 
             harness.viewModel.selectSource()
@@ -155,8 +150,7 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf(dest), harness.repository.savedDestDirs)
         }
 
-        test("FINISHED action returns to IDLE") { directory ->
-            val harness = CopyViewModelHarness(directory)
+        test("FINISHED action returns to IDLE") { harness ->
             harness.viewModel.onDeleteOrphansChanged(false)
             harness.viewModel.onActionButtonClick()
             withTimeout(5.seconds) {
@@ -169,12 +163,12 @@ val CopyViewModelTests by testSuite(
             assertTrue(harness.viewModel.uiState.value.logMessages.isEmpty())
         }
 
-        test("preserve symbolic links preference loads, saves, and is passed to the engine") { directory ->
+        test("preserve symbolic links preference loads, saves, and is passed to the engine") { defaultHarness ->
             val harness = CopyViewModelHarness(
-                directory = directory,
+                directory = defaultHarness.directory,
                 preferences = CopyPreferences(
-                    sourceDir = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
-                    destDir = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,
+                    sourceDir = defaultHarness.directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
+                    destDir = defaultHarness.directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,
                     deleteOrphans = false,
                     preserveSymbolicLinks = false,
                 ),
@@ -195,8 +189,14 @@ val CopyViewModelTests by testSuite(
     }
 }
 
+private fun TestSuiteScope.copyViewModelHarnessFixture(): TestFixture<CopyViewModelHarness> =
+    temporaryDirectoryBasedFixture(
+        create = ::CopyViewModelHarness,
+        directoryOf = { it.directory },
+    )
+
 private class CopyViewModelHarness(
-    directory: Path,
+    val directory: Path,
     preferences: CopyPreferences = CopyPreferences(
         sourceDir = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
         destDir = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,

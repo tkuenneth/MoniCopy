@@ -17,18 +17,16 @@
 
 package com.thomaskuenneth.monicopy
 
-import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import java.nio.file.Files
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.createDirectories
+import kotlin.io.path.writeBytes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-val FolderMapTests by testSuite(
-    compartment = { TestCompartment.Concurrent },
-) {
+val FolderMapTests by testSuite {
     temporaryDirectoryFixture().asParameterForEach {
         test("does not follow directory symbolic links") { directory ->
             val root = directory.resolve("root").also { it.createDirectories() }
@@ -53,6 +51,56 @@ val FolderMapTests by testSuite(
             assertFalse(folders.contains(outside.toAbsolutePath().normalize()))
             assertFalse(folders.contains(secret.toAbsolutePath().normalize()))
             assertTrue(Files.isSymbolicLink(root.resolve("linked")))
+        }
+
+        test("iterator yields deepest folders first") { directory ->
+            val root = directory.resolve("root").also { it.createDirectories() }
+            val mid = root.resolve("mid").also { it.createDirectories() }
+            val leaf = mid.resolve("leaf").also { it.createDirectories() }
+
+            val map = FolderMap()
+            map.fill(root.toFile())
+            val folders = map.iterator.asSequence().map { it.toPath().toAbsolutePath().normalize() }.toList()
+
+            assertEquals(
+                listOf(
+                    leaf.toAbsolutePath().normalize(),
+                    mid.toAbsolutePath().normalize(),
+                    root.toAbsolutePath().normalize(),
+                ),
+                folders,
+            )
+        }
+
+        test("fill clears previous contents") { directory ->
+            val first = directory.resolve("first").also { it.createDirectories() }
+            first.resolve("a").createDirectories()
+            val second = directory.resolve("second").also { it.createDirectories() }
+            second.resolve("b").createDirectories()
+
+            val map = FolderMap()
+            map.fill(first.toFile())
+            map.fill(second.toFile())
+            val folders = map.iterator.asSequence().map { it.toPath().toAbsolutePath().normalize() }.toSet()
+
+            assertEquals(
+                setOf(
+                    second.toAbsolutePath().normalize(),
+                    second.resolve("b").toAbsolutePath().normalize(),
+                ),
+                folders,
+            )
+        }
+
+        test("regular files are not collected as folders") { directory ->
+            val root = directory.resolve("root").also { it.createDirectories() }
+            root.resolve("file.txt").writeBytes(byteArrayOf(1))
+
+            val map = FolderMap()
+            map.fill(root.toFile())
+            val folders = map.iterator.asSequence().map { it.toPath().toAbsolutePath().normalize() }.toSet()
+
+            assertEquals(setOf(root.toAbsolutePath().normalize()), folders)
         }
     }
 }

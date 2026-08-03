@@ -15,7 +15,6 @@
  */
 package com.thomaskuenneth.monicopy
 
-import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -25,9 +24,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-val DirectoryValidationTests by testSuite(
-    compartment = { TestCompartment.Concurrent },
-) {
+val DirectoryValidationTests by testSuite {
     temporaryDirectoryFixture().asParameterForEach {
         test("dest nested under source is reported as Overlap") { directory ->
             val source = directory.toFile()

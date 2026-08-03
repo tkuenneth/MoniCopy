@@ -15,18 +15,16 @@
  */
 package com.thomaskuenneth.monicopy
 
-import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-val FileStoreTests by testSuite(
-    compartment = { TestCompartment.Concurrent },
-) {
+val FileStoreTests by testSuite {
     temporaryDirectoryFixture().asParameterForEach {
         test("ignored directories are skipped when scanning") { directory ->
             val root = directory.toFile()
@@ -74,9 +72,54 @@ val FileStoreTests by testSuite(
             assertEquals(listOf(root.resolve("kept-link").toFile().absolutePath), store.symbolicLinks.map { it.absolutePath })
         }
 
-        test("fill with null file returns null") {
+        test("empty directory reports one directory and no files or links") { directory ->
+            val root = directory.resolve("empty").also { it.createDirectories() }.toFile()
+
             val store = FileStore(null)
-            assertNull(store.fill(null, emptyList()))
+            val files = store.fill(root, emptyList())
+
+            assertTrue(files.isEmpty())
+            assertEquals(1, store.numberOfDirectories)
+            assertTrue(store.symbolicLinks.isEmpty())
         }
+
+        test("nested files and folders are counted without following links") { directory ->
+            val root = directory.resolve("scan-root").also { it.createDirectories() }
+            root.resolve("a.txt").writeText("a")
+            val nested = root.resolve("sub").also { it.createDirectories() }
+            nested.resolve("b.txt").writeText("b")
+            nested.resolve("deeper").createDirectories()
+            val outside = directory.resolve("outside").also { it.createDirectories() }
+            outside.resolve("via-link.txt").writeText("nope")
+            Files.createSymbolicLink(root.resolve("linked"), outside)
+            Files.createSymbolicLink(root.resolve("alias.txt"), Path.of("a.txt"))
+
+            val store = FileStore(null)
+            val files = store.fill(root.toFile(), emptyList())
+
+            assertEquals(2, files.size)
+            assertEquals(3, store.numberOfDirectories)
+            assertEquals(2, store.symbolicLinks.size)
+            assertTrue(files.none { it.name == "via-link.txt" })
+        }
+
+        test("dangling symbolic links are still collected") { directory ->
+            val root = directory.resolve("scan-root").also { it.createDirectories() }
+            val dangling = Files.createSymbolicLink(
+                root.resolve("missing-link"),
+                Path.of("does-not-exist"),
+            ).toFile()
+
+            val store = FileStore(null)
+            val files = store.fill(root.toFile(), emptyList())
+
+            assertTrue(files.isEmpty())
+            assertEquals(listOf(dangling.absolutePath), store.symbolicLinks.map { it.absolutePath })
+        }
+    }
+
+    test("fill with null file returns null") {
+        val store = FileStore(null)
+        assertNull(store.fill(null, emptyList()))
     }
 }

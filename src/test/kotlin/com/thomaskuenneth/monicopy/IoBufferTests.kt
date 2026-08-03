@@ -33,7 +33,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 val IoBufferTests by testSuite(
-    compartment = { TestCompartment.Concurrent },
+    compartment = { TestCompartment.Sequential },
 ) {
     test("MD5 and FileCopier default buffers match IoBuffers.DEFAULT_LENGTH") {
         assertEquals(IoBuffers.DEFAULT_LENGTH, MD5().buffer.size)
@@ -94,6 +94,27 @@ val IoBufferTests by testSuite(
 
             assertFalse(copier.copy(content, content.size.toLong() + 1L, to))
             assertFalse(to.exists())
+        }
+
+        test("FileCopier copies a zero-byte file") { directory ->
+            val from = directory.resolve("empty-src.bin").also { it.writeBytes(byteArrayOf()) }
+            val to = directory.resolve("empty-dst.bin").toFile()
+
+            assertTrue(FileCopier().copy(from.toFile(), to))
+            assertTrue(to.exists())
+            assertEquals(0L, to.length())
+            assertContentEquals(byteArrayOf(), to.readBytes())
+        }
+
+        test("MD5 hashes a zero-byte file") { directory ->
+            val file = directory.resolve("empty.bin").also { it.writeBytes(byteArrayOf()) }.toFile()
+            val md5 = MD5()
+
+            val checksum = md5.getChecksum(file)
+
+            assertEquals(expectedMd5Hex(byteArrayOf()), checksum)
+            assertEquals(0L, md5.lengthOfFile)
+            assertFalse(md5.canReadFromBuffer())
         }
     }
 }
