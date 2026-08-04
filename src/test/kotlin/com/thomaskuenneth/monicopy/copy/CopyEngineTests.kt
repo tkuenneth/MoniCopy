@@ -19,12 +19,6 @@ package com.thomaskuenneth.monicopy.copy
 
 import com.thomaskuenneth.monicopy.TestIoSizes
 import com.thomaskuenneth.monicopy.temporaryDirectoryFixture
-import com.thomaskuenneth.monicopy.blockingGetString
-import com.thomaskuenneth.monicopy.generated.resources.Res
-import com.thomaskuenneth.monicopy.generated.resources.finished_copying
-import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
-import com.thomaskuenneth.monicopy.generated.resources.started_copying
-import com.thomaskuenneth.monicopy.generated.resources.started_deleting
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
 import java.nio.file.Files
@@ -714,8 +708,6 @@ val CopyEngineTests by testSuite(
             val progress = mutableListOf<Int>()
             var fileCount: Long? = null
             var subfolderCount: Long? = null
-            val started = blockingGetString(Res.string.started_copying)
-            val finished = blockingGetString(Res.string.finished_copying)
 
             ws.engine.copy(
                 ws.source.toString(),
@@ -733,8 +725,7 @@ val CopyEngineTests by testSuite(
             assertEquals(0L, fileCount)
             assertEquals(0L, subfolderCount)
             assertEquals(listOf(100), progress)
-            assertEquals(started, messages.first())
-            assertEquals(finished, messages.last())
+            assertTrue(messages.isEmpty())
         }
 
         test("onCopyDecision reports copied and skipped files") { directory ->
@@ -765,8 +756,6 @@ val CopyEngineTests by testSuite(
             ws.engine.copyStateProvider = { CopyState.DELETING }
             val messages = mutableListOf<String>()
             val progress = mutableListOf<Int>()
-            val started = blockingGetString(Res.string.started_deleting)
-            val finished = blockingGetString(Res.string.finished_deleting)
 
             ws.engine.deleteOrphans(
                 ws.source.toString(),
@@ -777,8 +766,7 @@ val CopyEngineTests by testSuite(
             )
 
             assertEquals(listOf(100), progress)
-            assertEquals(started, messages.first())
-            assertEquals(finished, messages.last())
+            assertTrue(messages.isEmpty())
         }
     }
 }

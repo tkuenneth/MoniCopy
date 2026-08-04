@@ -21,8 +21,6 @@ import com.thomaskuenneth.monicopy.blockingGetString
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.add_ignored_directory
 import com.thomaskuenneth.monicopy.generated.resources.destination_folder
-import com.thomaskuenneth.monicopy.generated.resources.finished_copying
-import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
 import com.thomaskuenneth.monicopy.generated.resources.message_template
 import com.thomaskuenneth.monicopy.generated.resources.source_folder
 import com.thomaskuenneth.monicopy.platform.DirectoryChooser
@@ -204,6 +202,7 @@ class CopyViewModel(
                         _uiState.value.preserveSymbolicLinks,
                     )
                     if (_uiState.value.copyState == CopyState.IDLE) return@launch
+                    mutate { it.copy(copyPhaseComplete = true) }
                     nextStep()
                 }
             }
@@ -253,14 +252,8 @@ class CopyViewModel(
         }
         val time = logTimeFormatter.format()
         val line = blockingGetString(Res.string.message_template, time, msg).trimEnd()
-        val finishedCopying = blockingGetString(Res.string.finished_copying)
-        val finishedDeleting = blockingGetString(Res.string.finished_deleting)
         mutate { state ->
-            state.copy(
-                logMessages = state.logMessages + line,
-                copyPhaseComplete = state.copyPhaseComplete || msg == finishedCopying,
-                orphanPhaseComplete = state.orphanPhaseComplete || msg == finishedDeleting,
-            )
+            state.copy(logMessages = state.logMessages + line)
         }
     }
 
@@ -316,6 +309,7 @@ class CopyViewModel(
                             ::onOrphanProgress,
                         )
                         if (_uiState.value.copyState == CopyState.IDLE) return@launch
+                        mutate { it.copy(orphanPhaseComplete = true) }
                         nextStep()
                     }
                 } else {

@@ -24,11 +24,7 @@ import com.thomaskuenneth.monicopy.blockingGetString
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.could_not_copy
 import com.thomaskuenneth.monicopy.generated.resources.could_not_delete
-import com.thomaskuenneth.monicopy.generated.resources.finished_copying
-import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
 import com.thomaskuenneth.monicopy.generated.resources.not_a_directory
-import com.thomaskuenneth.monicopy.generated.resources.started_copying
-import com.thomaskuenneth.monicopy.generated.resources.started_deleting
 import org.koin.core.annotation.Single
 import java.io.File
 import java.io.IOException
@@ -169,14 +165,12 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         preserveSymbolicLinks: Boolean,
     ) {
         val offset = from.absolutePath.length + 1
-        onMessage(blockingGetString(Res.string.started_copying))
         val store = fileStoreFactory()
         val files = store.fill(from, ignores)
         rememberSymbolicLinksFrom(store)
         if (files == null) {
             onCounts(0L, 0L)
             reportInitialProgress(0L, onProgress)
-            onMessage(blockingGetString(Res.string.finished_copying))
             maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to, onMessage)
             return
         }
@@ -215,7 +209,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 onProgress = onProgress,
             )
         }
-        onMessage(blockingGetString(Res.string.finished_copying))
         maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to, onMessage)
     }
 
@@ -243,13 +236,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
-        onMessage(blockingGetString(Res.string.started_deleting))
         val store = fileStoreFactory()
         val files = store.fill(destDir, ignores)
         rememberSymbolicLinksFrom(store)
         if (files == null) {
             reportInitialProgress(0L, onProgress)
-            onMessage(blockingGetString(Res.string.finished_deleting))
             return
         }
         val numberOfFiles = store.numberOfFiles
@@ -291,7 +282,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 onProgress = onProgress,
             )
         }
-        onMessage(blockingGetString(Res.string.finished_deleting))
     }
 
     private fun deleteOrphanEntry(

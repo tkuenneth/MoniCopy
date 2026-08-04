@@ -47,11 +47,12 @@ val CopyViewModelTests by testSuite(
         test("copy then delete orphans reaches FINISHED") { harness ->
             harness.viewModel.onActionButtonClick()
 
-            withTimeout(5.seconds) {
-                harness.viewModel.uiState.first { it.copyState == CopyState.FINISHED }
-            }
+            val finished = harness.awaitFinished()
 
             assertEquals(listOf("copy", "deleteOrphans"), harness.engine.calls)
+            assertTrue(finished.copyPhaseComplete)
+            assertTrue(finished.orphanPhaseComplete)
+            assertTrue(finished.logMessages.isEmpty())
         }
 
         test("copy without delete orphans reaches FINISHED") { harness ->
@@ -60,11 +61,28 @@ val CopyViewModelTests by testSuite(
 
             harness.viewModel.onActionButtonClick()
 
-            withTimeout(5.seconds) {
-                harness.viewModel.uiState.first { it.copyState == CopyState.FINISHED }
-            }
+            val finished = harness.awaitFinished()
 
             assertEquals(listOf("copy"), harness.engine.calls)
+            assertTrue(finished.copyPhaseComplete)
+            assertFalse(finished.orphanPhaseComplete)
+            assertTrue(finished.logMessages.isEmpty())
+        }
+
+        test("copy phase completes when copy returns, before orphan delete finishes") { harness ->
+            harness.engine.blockDelete = true
+            harness.viewModel.onActionButtonClick()
+            assertTrue(harness.engine.deleteEntered.await(5, TimeUnit.SECONDS))
+
+            val duringDelete = harness.viewModel.uiState.value
+            assertEquals(CopyState.DELETING, duringDelete.copyState)
+            assertTrue(duringDelete.copyPhaseComplete)
+            assertFalse(duringDelete.orphanPhaseComplete)
+            assertTrue(duringDelete.logMessages.isEmpty())
+
+            harness.engine.releaseDelete()
+            val finished = harness.awaitFinished()
+            assertTrue(finished.orphanPhaseComplete)
         }
 
         test("cancel during copy returns to IDLE") { harness ->
@@ -75,7 +93,10 @@ val CopyViewModelTests by testSuite(
 
             harness.viewModel.cancelOperation()
 
-            assertEquals(CopyState.IDLE, harness.viewModel.uiState.value.copyState)
+            val idle = harness.viewModel.uiState.value
+            assertEquals(CopyState.IDLE, idle.copyState)
+            assertFalse(idle.copyPhaseComplete)
+            assertFalse(idle.orphanPhaseComplete)
             assertEquals(1, harness.engine.cancelCount)
             assertTrue(harness.engine.copyFinished.await(5, TimeUnit.SECONDS))
         }
@@ -93,9 +114,7 @@ val CopyViewModelTests by testSuite(
             assertEquals(1, harness.engine.resumeCount)
 
             harness.engine.releaseCopy()
-            withTimeout(5.seconds) {
-                harness.viewModel.uiState.first { it.copyState == CopyState.FINISHED }
-            }
+            harness.awaitFinished()
         }
 
         test("pause and continue during delete orphans") { harness ->
@@ -112,10 +131,10 @@ val CopyViewModelTests by testSuite(
             assertEquals(1, harness.engine.resumeCount)
 
             harness.engine.releaseDelete()
-            withTimeout(5.seconds) {
-                harness.viewModel.uiState.first { it.copyState == CopyState.FINISHED }
-            }
+            val finished = harness.awaitFinished()
             assertEquals(listOf("copy", "deleteOrphans"), harness.engine.calls)
+            assertTrue(finished.copyPhaseComplete)
+            assertTrue(finished.orphanPhaseComplete)
         }
 
         test("add and remove ignored directories persist through the repository") { harness ->
@@ -153,9 +172,7 @@ val CopyViewModelTests by testSuite(
         test("FINISHED action returns to IDLE") { harness ->
             harness.viewModel.onDeleteOrphansChanged(false)
             harness.viewModel.onActionButtonClick()
-            withTimeout(5.seconds) {
-                harness.viewModel.uiState.first { it.copyState == CopyState.FINISHED }
-            }
+            harness.awaitFinished()
 
             harness.viewModel.onActionButtonClick()
 
@@ -180,14 +197,17 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf(true), harness.repository.savedPreserveSymbolicLinks)
 
             harness.viewModel.onActionButtonClick()
-            withTimeout(5.seconds) {
-                harness.viewModel.uiState.first { it.copyState == CopyState.FINISHED }
-            }
+            harness.awaitFinished()
 
             assertEquals(true, harness.engine.lastPreserveSymbolicLinks)
         }
     }
 }
+
+private suspend fun CopyViewModelHarness.awaitFinished(): CopyUiState =
+    withTimeout(5.seconds) {
+        viewModel.uiState.first { it.copyState == CopyState.FINISHED }
+    }
 
 private fun TestSuiteScope.copyViewModelHarnessFixture(): TestFixture<CopyViewModelHarness> =
     temporaryDirectoryBasedFixture(
