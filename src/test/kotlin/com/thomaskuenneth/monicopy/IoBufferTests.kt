@@ -92,7 +92,7 @@ val IoBufferTests by testSuite(
             val to = directory.resolve("rejected.bin").toFile()
             val copier = FileCopier()
 
-            assertFalse(copier.copy(content, content.size.toLong() + 1L, to))
+            assertTrue(runCatching { copier.copy(content, content.size.toLong() + 1L, to) }.isFailure)
             assertFalse(to.exists())
         }
 

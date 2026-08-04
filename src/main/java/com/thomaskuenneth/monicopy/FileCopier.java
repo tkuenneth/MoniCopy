@@ -19,16 +19,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class FileCopier {
 
-    private static final Logger LOGGER = Logger.getGlobal();
-
     private final byte[] buffer;
-
-    private String lastLocalizedMessage = null;
 
     public FileCopier() {
         this(IoBuffers.DEFAULT_LENGTH);
@@ -38,15 +32,11 @@ public class FileCopier {
         buffer = new byte[bufsize];
     }
 
-    public String getLastLocalizedMessage() {
-        return lastLocalizedMessage;
-    }
-
     public int getBufferLength() {
         return buffer.length;
     }
 
-    public synchronized boolean copy(File from, File to) {
+    public synchronized boolean copy(File from, File to) throws IOException {
         long lenFrom = from.length();
         long read = 0;
         long num;
@@ -63,28 +53,19 @@ public class FileCopier {
                 out.write(buffer, 0, (int) num);
                 read += num;
             }
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "error while copying", e);
-            lastLocalizedMessage = e.getLocalizedMessage();
-            return false;
         }
         return lenFrom == to.length();
     }
 
-    public synchronized boolean copy(byte[] from, long lenFrom, File to) {
+    public synchronized boolean copy(byte[] from, long lenFrom, File to) throws IOException {
         if (lenFrom < 0 || lenFrom > from.length) {
-            lastLocalizedMessage = String.format(
-                    "invalid length %d for buffer of size %d", lenFrom, from.length);
-            return false;
+            throw new IOException(String.format(
+                    "invalid length %d for buffer of size %d", lenFrom, from.length));
         }
         //noinspection ResultOfMethodCallIgnored
         to.getParentFile().mkdirs();
         try (FileOutputStream out = new FileOutputStream(to)) {
             out.write(from, 0, (int) lenFrom);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "error while copying", e);
-            lastLocalizedMessage = e.getLocalizedMessage();
-            return false;
         }
         return lenFrom == to.length();
     }

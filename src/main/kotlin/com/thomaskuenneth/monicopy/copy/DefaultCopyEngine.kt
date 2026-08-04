@@ -190,22 +190,20 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             val destination = File(to, fileToCopy.absolutePath.substring(offset))
             if (mustBeCopied(fileToCopy, destination)) {
                 onCopyDecision(true)
-                val readFromBuffer = mdFrom.canReadFromBuffer()
-                val ok = if (readFromBuffer) {
-                    copier.copy(mdFrom.buffer, mdFrom.lengthOfFile, destination)
-                } else {
-                    copier.copy(fileToCopy, destination)
-                }
-                if (!ok) {
-                    onMessage(
-                        blockingGetString(
-                            Res.string.could_not_copy,
-                            fileToCopy.absolutePath,
-                            copier.lastLocalizedMessage,
-                        ),
-                    )
-                } else {
-                    destination.setLastModified(fileToCopy.lastModified())
+                try {
+                    val readFromBuffer = mdFrom.canReadFromBuffer()
+                    val ok = if (readFromBuffer) {
+                        copier.copy(mdFrom.buffer, mdFrom.lengthOfFile, destination)
+                    } else {
+                        copier.copy(fileToCopy, destination)
+                    }
+                    if (!ok) {
+                        reportCouldNotCopy(fileToCopy.absolutePath, "length mismatch after copy", onMessage)
+                    } else {
+                        destination.setLastModified(fileToCopy.lastModified())
+                    }
+                } catch (e: IOException) {
+                    reportCouldNotCopy(fileToCopy.absolutePath, e.localizedMessage, onMessage)
                 }
             } else {
                 onCopyDecision(false)
@@ -228,11 +226,15 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         onMessage: (String) -> Unit,
     ) {
         if (!preserveSymbolicLinks) return
-        symbolicLinkPreserver.preserve(symbolicLinks, from, to) { source, message ->
-            onMessage(
-                blockingGetString(Res.string.could_not_copy, source.absolutePath, message),
-            )
+        symbolicLinkPreserver.preserve(symbolicLinks, from, to) { source, detail ->
+            reportCouldNotCopy(source.absolutePath, detail, onMessage)
         }
+    }
+
+    private fun reportCouldNotCopy(path: String, detail: String?, onMessage: (String) -> Unit) {
+        val message = blockingGetString(Res.string.could_not_copy, path, detail.orEmpty())
+        logger.log(Level.SEVERE, message)
+        onMessage(message)
     }
 
     private fun deleteOrphansInternal(
