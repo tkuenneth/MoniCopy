@@ -68,7 +68,6 @@ val CopyCountReportingTests by testSuite(
                     ws.source.toString(),
                     ws.dest.toString(),
                     emptyList(),
-                    onMessage = OnMessage { _, _ -> },
                     onProgress = {},
                     onCounts = { files, folders ->
                         fileCount = files
@@ -86,7 +85,7 @@ val CopyCountReportingTests by testSuite(
 
                 if (deleteOrphans) {
                     ws.engine.copyStateProvider = { CopyState.DELETING }
-                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), onMessage = OnMessage { _, _ -> })
+                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
                 }
 
                 assertTrue(ws.dest.resolve("root.txt").isRegularFile())

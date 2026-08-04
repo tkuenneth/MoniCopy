@@ -16,7 +16,6 @@
 package com.thomaskuenneth.monicopy.copy
 
 import com.thomaskuenneth.monicopy.platform.DirectoryChooser
-import com.thomaskuenneth.monicopy.platform.LogTimeFormatter
 import com.thomaskuenneth.monicopy.temporaryDirectoryBasedFixture
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.TestConfig
@@ -52,7 +51,6 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf("copy", "deleteOrphans"), harness.engine.calls)
             assertTrue(finished.copyPhaseComplete)
             assertTrue(finished.orphanPhaseComplete)
-            assertTrue(finished.logMessages.isEmpty())
         }
 
         test("copy without delete orphans reaches FINISHED") { harness ->
@@ -66,7 +64,6 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf("copy"), harness.engine.calls)
             assertTrue(finished.copyPhaseComplete)
             assertFalse(finished.orphanPhaseComplete)
-            assertTrue(finished.logMessages.isEmpty())
         }
 
         test("copy phase completes when copy returns, before orphan delete finishes") { harness ->
@@ -78,7 +75,6 @@ val CopyViewModelTests by testSuite(
             assertEquals(CopyState.DELETING, duringDelete.copyState)
             assertTrue(duringDelete.copyPhaseComplete)
             assertFalse(duringDelete.orphanPhaseComplete)
-            assertTrue(duringDelete.logMessages.isEmpty())
 
             harness.engine.releaseDelete()
             val finished = harness.awaitFinished()
@@ -177,7 +173,6 @@ val CopyViewModelTests by testSuite(
             harness.viewModel.onActionButtonClick()
 
             assertEquals(CopyState.IDLE, harness.viewModel.uiState.value.copyState)
-            assertTrue(harness.viewModel.uiState.value.logMessages.isEmpty())
         }
 
         test("preserve symbolic links preference loads, saves, and is passed to the engine") { defaultHarness ->
@@ -230,7 +225,6 @@ private class CopyViewModelHarness(
         engine = engine,
         repository = repository,
         directoryChooser = directoryChooser,
-        logTimeFormatter = FixedLogTimeFormatter(),
     )
 }
 
@@ -294,7 +288,6 @@ private class ControllableCopyEngine : CopyEngine {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: OnMessage,
     ) {
         copyEntered.countDown()
         if (blockCopy) {
@@ -308,21 +301,19 @@ private class ControllableCopyEngine : CopyEngine {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
         preserveSymbolicLinks: Boolean,
     ) {
         lastPreserveSymbolicLinks = preserveSymbolicLinks
-        copy(fromPath, toPath, ignores, onMessage)
+        copy(fromPath, toPath, ignores)
     }
 
     override fun deleteOrphans(
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: OnMessage,
     ) {
         deleteEntered.countDown()
         if (blockDelete) {
@@ -351,6 +342,3 @@ private class ScriptedDirectoryChooser : DirectoryChooser {
         if (results.isEmpty()) null else results.removeFirst()
 }
 
-private class FixedLogTimeFormatter : LogTimeFormatter {
-    override fun format(): String = "00:00:00"
-}

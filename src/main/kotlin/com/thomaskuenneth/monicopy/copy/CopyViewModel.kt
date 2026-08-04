@@ -21,14 +21,10 @@ import com.thomaskuenneth.monicopy.blockingGetString
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.add_ignored_directory
 import com.thomaskuenneth.monicopy.generated.resources.destination_folder
-import com.thomaskuenneth.monicopy.generated.resources.message_template
 import com.thomaskuenneth.monicopy.generated.resources.source_folder
 import com.thomaskuenneth.monicopy.platform.DirectoryChooser
-import com.thomaskuenneth.monicopy.platform.LogTimeFormatter
 import com.thomaskuenneth.monicopy.prepareDirectories
 import java.io.File
-import java.util.logging.Level
-import java.util.logging.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +45,6 @@ data class CopyUiState(
     val selectedIgnores: Set<File> = emptySet(),
     val deleteOrphans: Boolean = false,
     val preserveSymbolicLinks: Boolean = true,
-    val logMessages: List<String> = emptyList(),
     val copyProgressPercent: Int? = null,
     val orphanProgressPercent: Int? = null,
     val fileCount: Long? = null,
@@ -75,7 +70,6 @@ data class CopyUiState(
 
     fun withClearedOperationUi(copyState: CopyState): CopyUiState = copy(
         copyState = copyState,
-        logMessages = emptyList(),
         copyProgressPercent = null,
         orphanProgressPercent = null,
         fileCount = null,
@@ -92,10 +86,8 @@ class CopyViewModel(
     private val engine: CopyEngine,
     private val repository: CopyRepository,
     private val directoryChooser: DirectoryChooser,
-    private val logTimeFormatter: LogTimeFormatter,
 ) : ViewModel() {
 
-    private val logger = Logger.getGlobal()
     private val _uiState = MutableStateFlow(CopyUiState())
     val uiState: StateFlow<CopyUiState> = _uiState.asStateFlow()
 
@@ -195,7 +187,6 @@ class CopyViewModel(
                         from,
                         to,
                         ignores,
-                        OnMessage(::appendLog),
                         ::onCopyProgress,
                         ::onCounts,
                         ::onCopyDecision,
@@ -243,17 +234,6 @@ class CopyViewModel(
         val state = _uiState.value
         if (state.sourceDir != null && state.destDir != null) {
             prepareDirectories(state.sourceDir, state.destDir)
-        }
-    }
-
-    private fun appendLog(msg: String, logLevel: Level? = null) {
-        if (logLevel != null) {
-            logger.log(logLevel, msg)
-        }
-        val time = logTimeFormatter.format()
-        val line = blockingGetString(Res.string.message_template, time, msg).trimEnd()
-        mutate { state ->
-            state.copy(logMessages = state.logMessages + line)
         }
     }
 
@@ -305,7 +285,6 @@ class CopyViewModel(
                             from,
                             to,
                             ignores,
-                            OnMessage(::appendLog),
                             ::onOrphanProgress,
                         )
                         if (_uiState.value.copyState == CopyState.IDLE) return@launch

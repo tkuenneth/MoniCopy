@@ -17,19 +17,15 @@ package com.thomaskuenneth.monicopy.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
@@ -38,18 +34,15 @@ import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.thomaskuenneth.monicopy.copy.CopyUiState
@@ -92,12 +85,6 @@ private sealed interface OrphanPhaseStatus {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun InFlightPane(uiState: CopyUiState) {
-    val listState = rememberLazyListState()
-    LaunchedEffect(uiState.logMessages.size) {
-        if (uiState.logMessages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.logMessages.lastIndex)
-        }
-    }
     val panePadding = PaddingValues(
         horizontal = UIConstants.PREFERRED_HORIZONTAL_PADDING,
         vertical = UIConstants.PREFERRED_VERTICAL_PADDING,
@@ -125,18 +112,15 @@ fun InFlightPane(uiState: CopyUiState) {
             paused = uiState.isPaused,
         )
     }
-    Row(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .weight(0.5f)
-                .fillMaxSize(),
-            contentPadding = panePadding,
-            verticalArrangement = Arrangement.spacedBy(
-                UIConstants.PREFERRED_VERTICAL_PADDING,
-                Alignment.CenterVertically,
-            ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = panePadding,
+        verticalArrangement = Arrangement.spacedBy(
+            UIConstants.PREFERRED_VERTICAL_PADDING,
+            Alignment.CenterVertically,
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
             if (discoveryStatus != null) {
                 item(key = "discovery") {
                     AnimatedContent(
@@ -251,29 +235,7 @@ fun InFlightPane(uiState: CopyUiState) {
                                 )
                             }
                         }
-                    }
                 }
-            }
-        }
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .weight(0.5f)
-                .fillMaxSize()
-                .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surfaceContainer),
-            contentPadding = panePadding,
-        ) {
-            itemsIndexed(
-                uiState.logMessages,
-                key = { index, _ -> index },
-            ) { _, line ->
-                Text(
-                    text = line,
-                    fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
             }
         }
     }

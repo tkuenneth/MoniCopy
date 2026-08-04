@@ -14,7 +14,6 @@
     <string name="destination_folder">Destination folder</string>
     <string name="delete_orphaned_files">Delete orphaned files and folders</string>
     <string name="preserve_symbolic_links">Preserve symbolic links</string>
-    <string name="message_template">%1$s: %2$s\n</string>
     <string name="no_overlap">The source folder must not contain the destination</string>
     <string name="cannot_read">Cannot read from source</string>
     <string name="cannot_write">Cannot write to destination</string>

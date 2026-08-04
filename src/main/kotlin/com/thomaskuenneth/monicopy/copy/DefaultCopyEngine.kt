@@ -86,48 +86,43 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: OnMessage,
     ) {
-        copy(fromPath, toPath, ignores, onMessage, onProgress = {}, onCounts = { _, _ -> }, onCopyDecision = {}, preserveSymbolicLinks = true)
+        copy(fromPath, toPath, ignores, onProgress = {}, onCounts = { _, _ -> }, onCopyDecision = {}, preserveSymbolicLinks = true)
     }
 
     override fun copy(
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
         preserveSymbolicLinks: Boolean,
     ) {
-        copy(File(fromPath), File(toPath), ignores, onMessage, onProgress, onCounts, onCopyDecision, preserveSymbolicLinks)
+        copy(File(fromPath), File(toPath), ignores, onProgress, onCounts, onCopyDecision, preserveSymbolicLinks)
     }
 
     override fun deleteOrphans(
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: OnMessage,
     ) {
-        deleteOrphans(sourcePath, destPath, ignores, onMessage, onProgress = {})
+        deleteOrphans(sourcePath, destPath, ignores, onProgress = {})
     }
 
     override fun deleteOrphans(
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
-        deleteOrphans(File(sourcePath), File(destPath), ignores, onMessage, onProgress)
+        deleteOrphans(File(sourcePath), File(destPath), ignores, onProgress)
     }
 
     private fun copy(
         from: File,
         to: File,
         ignores: List<String>,
-        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
@@ -135,7 +130,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
     ) {
         cancelled = false
         try {
-            copyInternal(from, to, ignores, onMessage, onProgress, onCounts, onCopyDecision, preserveSymbolicLinks)
+            copyInternal(from, to, ignores, onProgress, onCounts, onCopyDecision, preserveSymbolicLinks)
         } catch (_: CopyCancelledException) {
         }
     }
@@ -144,12 +139,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         sourceDir: File,
         destDir: File,
         ignores: List<String>,
-        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
         cancelled = false
         try {
-            deleteOrphansInternal(sourceDir, destDir, ignores, onMessage, onProgress)
+            deleteOrphansInternal(sourceDir, destDir, ignores, onProgress)
         } catch (_: CopyCancelledException) {
         }
     }
@@ -158,7 +152,6 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         from: File,
         to: File,
         ignores: List<String>,
-        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
@@ -171,7 +164,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         if (files == null) {
             onCounts(0L, 0L)
             reportInitialProgress(0L, onProgress)
-            maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to, onMessage)
+            maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to)
             return
         }
         val numberOfFiles = store.numberOfFiles
@@ -192,12 +185,12 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                         copier.copy(fileToCopy, destination)
                     }
                     if (!ok) {
-                        reportCouldNotCopy(fileToCopy.absolutePath, "length mismatch after copy", onMessage)
+                        reportCouldNotCopy(fileToCopy.absolutePath, "length mismatch after copy")
                     } else {
                         destination.setLastModified(fileToCopy.lastModified())
                     }
                 } catch (e: IOException) {
-                    reportCouldNotCopy(fileToCopy.absolutePath, e.localizedMessage, onMessage)
+                    reportCouldNotCopy(fileToCopy.absolutePath, e.localizedMessage)
                 }
             } else {
                 onCopyDecision(false)
@@ -209,31 +202,29 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 onProgress = onProgress,
             )
         }
-        maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to, onMessage)
+        maybePreserveSymbolicLinks(preserveSymbolicLinks, from, to)
     }
 
     private fun maybePreserveSymbolicLinks(
         preserveSymbolicLinks: Boolean,
         from: File,
         to: File,
-        onMessage: OnMessage,
     ) {
         if (!preserveSymbolicLinks) return
         symbolicLinkPreserver.preserve(symbolicLinks, from, to) { source, detail ->
-            reportCouldNotCopy(source.absolutePath, detail, onMessage)
+            reportCouldNotCopy(source.absolutePath, detail)
         }
     }
 
-    private fun reportCouldNotCopy(path: String, detail: String?, onMessage: OnMessage) {
+    private fun reportCouldNotCopy(path: String, detail: String?) {
         val message = blockingGetString(Res.string.could_not_copy, path, detail.orEmpty())
-        onMessage.severe(message)
+        logger.log(Level.SEVERE, message)
     }
 
     private fun deleteOrphansInternal(
         sourceDir: File,
         destDir: File,
         ignores: List<String>,
-        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
         val store = fileStoreFactory()
@@ -250,7 +241,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         var lastReported = reportInitialProgress(total, onProgress)
         for (fileToDelete in files) {
             checkForPause()
-            deleteOrphanEntry(fileToDelete, sourceDir, destDir, onMessage)
+            deleteOrphanEntry(fileToDelete, sourceDir, destDir)
             lastReported = reportSteppedProgress(
                 processed = ++processed,
                 total = total,
@@ -260,18 +251,18 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         }
         for (linkToDelete in store.symbolicLinks) {
             checkForPause()
-            deleteOrphanEntry(linkToDelete, sourceDir, destDir, onMessage)
+            deleteOrphanEntry(linkToDelete, sourceDir, destDir)
         }
         for (folder in folders) {
             checkForPause()
             if (!folder.isDirectory) {
                 val message = blockingGetString(Res.string.not_a_directory, folder.absolutePath)
-                onMessage.severe(message)
+                logger.log(Level.SEVERE, message)
             } else {
                 val children = folder.list()
                 if (children != null && children.isEmpty()) {
                     if (folder.absoluteFile != destDir.absoluteFile) {
-                        deletePath(folder, onMessage)
+                        deletePath(folder)
                     }
                 }
             }
@@ -288,17 +279,16 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         destEntry: File,
         sourceDir: File,
         destDir: File,
-        onMessage: OnMessage,
     ) {
         val name = relativePathUnder(destDir, destEntry)
         val sourceEntry = File(sourceDir, name)
         if (Files.exists(sourceEntry.toPath(), LinkOption.NOFOLLOW_LINKS)) {
             return
         }
-        deletePath(destEntry, onMessage)
+        deletePath(destEntry)
     }
 
-    private fun deletePath(path: File, onMessage: OnMessage) {
+    private fun deletePath(path: File) {
         try {
             Files.delete(path.toPath())
         } catch (e: IOException) {
@@ -307,7 +297,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 path.absolutePath,
                 e.localizedMessage,
             )
-            onMessage.severe(message)
+            logger.log(Level.SEVERE, message)
         }
     }
 

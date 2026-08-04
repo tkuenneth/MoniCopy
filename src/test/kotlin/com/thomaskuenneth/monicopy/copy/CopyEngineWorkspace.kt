@@ -37,7 +37,6 @@ class CopyEngineWorkspace(val root: Path) {
         copyStateProvider = { CopyState.COPYING }
     }
 
-    val ignoreMessages = OnMessage { _, _ -> }
 
     fun installNullFillStore() {
         engine.fileStoreFactory = {

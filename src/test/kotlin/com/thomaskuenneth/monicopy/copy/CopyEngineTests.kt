@@ -67,7 +67,7 @@ val CopyEngineTests by testSuite(
                 val content = ByteArray(size).also { SecureRandom().nextBytes(it) }
                 val sourceFile = ws.source.resolve("payload.bin").also { it.writeBytes(content) }
 
-                ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+                ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
                 val copied = ws.dest.resolve("payload.bin")
                 assertTrue(copied.isRegularFile())
@@ -83,7 +83,7 @@ val CopyEngineTests by testSuite(
             val content = byteArrayOf(7, 8, 9)
             nested.resolve("deep.bin").writeBytes(content)
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             val copied = ws.dest.resolve("a").resolve("b").resolve("c").resolve("deep.bin")
             assertTrue(copied.isRegularFile())
@@ -100,8 +100,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 listOf(ignored.toFile().absolutePath),
-                ws.ignoreMessages,
-            )
+                            )
 
             assertTrue(ws.dest.resolve("kept.txt").isRegularFile())
             assertFalse(ws.dest.resolve("ignored").resolve("secret.txt").exists())
@@ -115,7 +114,7 @@ val CopyEngineTests by testSuite(
             val orphan = ws.dest.resolve("orphan.txt").also { it.writeBytes(byteArrayOf(9, 9, 9)) }
             val sourceOnly = ws.source.resolve("only-in-source.txt").also { it.writeBytes(byteArrayOf(7)) }
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertFalse(orphan.exists())
             assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
@@ -132,7 +131,7 @@ val CopyEngineTests by testSuite(
             val orphanDir = ws.dest.resolve("empty-orphan").also { it.createDirectories() }
             orphanDir.resolve("nested").createDirectories()
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertFalse(ws.dest.resolve("empty-orphan").exists())
             assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
@@ -145,7 +144,7 @@ val CopyEngineTests by testSuite(
             val orphanDir = ws.dest.resolve("empty-orphan").also { it.createDirectories() }
             orphanDir.resolve("nested").createDirectories()
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertTrue(ws.dest.exists())
             assertTrue(Files.isDirectory(ws.dest))
@@ -164,8 +163,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 listOf(ignored.toFile().absolutePath),
-                ws.ignoreMessages,
-            )
+                            )
 
             assertTrue(ignored.resolve("orphan.txt").isRegularFile())
             assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
@@ -179,7 +177,7 @@ val CopyEngineTests by testSuite(
             target.resolve("payload.bin").writeBytes(byteArrayOf(9))
             Files.createSymbolicLink(ws.dest.resolve("orphan-link"), target)
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertFalse(Files.exists(ws.dest.resolve("orphan-link"), LinkOption.NOFOLLOW_LINKS))
             assertTrue(target.resolve("payload.bin").isRegularFile())
@@ -192,7 +190,7 @@ val CopyEngineTests by testSuite(
             val sourceLink = Files.createSymbolicLink(ws.source.resolve("kept-link"), target)
             Files.createSymbolicLink(ws.dest.resolve("kept-link"), target)
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             val destLink = ws.dest.resolve("kept-link")
             assertTrue(Files.isSymbolicLink(destLink))
@@ -208,7 +206,7 @@ val CopyEngineTests by testSuite(
             outsideChild.resolve("nested").createDirectories()
             Files.createSymbolicLink(ws.dest.resolve("trap"), outside)
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertFalse(Files.exists(ws.dest.resolve("trap"), LinkOption.NOFOLLOW_LINKS))
             assertTrue(outsideChild.exists())
@@ -226,8 +224,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = true,
@@ -255,8 +252,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = false,
@@ -280,8 +276,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = true,
@@ -304,8 +299,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = true,
@@ -327,8 +321,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 listOf(ignoredLink.toAbsolutePath().toString()),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = true,
@@ -349,8 +342,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = true,
@@ -358,7 +350,7 @@ val CopyEngineTests by testSuite(
             assertTrue(Files.isSymbolicLink(ws.dest.resolve("linked")))
 
             Files.delete(sourceLink)
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertFalse(Files.exists(ws.dest.resolve("linked"), LinkOption.NOFOLLOW_LINKS))
             assertTrue(ws.dest.resolve("keep.txt").isRegularFile())
@@ -375,8 +367,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = true,
@@ -400,8 +391,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { files, folders ->
                     fileCount = files
                     subfolderCount = folders
@@ -424,7 +414,7 @@ val CopyEngineTests by testSuite(
             val ws = CopyEngineWorkspace(directory)
             ws.source.resolve("empty.bin").writeBytes(byteArrayOf())
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             val copied = ws.dest.resolve("empty.bin")
             assertTrue(copied.isRegularFile())
@@ -442,8 +432,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = {},
                 preserveSymbolicLinks = true,
@@ -463,7 +452,7 @@ val CopyEngineTests by testSuite(
             Files.createSymbolicLink(ws.source.resolve("shared-link"), sourceTarget)
             Files.createSymbolicLink(ws.dest.resolve("shared-link"), destTarget)
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             val destLink = ws.dest.resolve("shared-link")
             assertTrue(Files.isSymbolicLink(destLink))
@@ -477,7 +466,7 @@ val CopyEngineTests by testSuite(
             ws.source.resolve("same-name").createDirectories()
             ws.dest.resolve("same-name").writeBytes(byteArrayOf(1, 2, 3))
 
-            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertTrue(ws.dest.resolve("same-name").isRegularFile())
             assertContentEquals(byteArrayOf(1, 2, 3), ws.dest.resolve("same-name").readBytes())
@@ -494,7 +483,7 @@ val CopyEngineTests by testSuite(
             val done = CountDownLatch(1)
             val worker = thread(name = "delete-cancel-test", isDaemon = true) {
                 try {
-                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
                 } finally {
                     done.countDown()
                 }
@@ -523,7 +512,7 @@ val CopyEngineTests by testSuite(
             val done = CountDownLatch(1)
             val worker = thread(name = "delete-pause-test", isDaemon = true) {
                 try {
-                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+                    ws.engine.deleteOrphans(ws.source.toString(), ws.dest.toString(), emptyList())
                 } finally {
                     done.countDown()
                 }
@@ -554,7 +543,7 @@ val CopyEngineTests by testSuite(
             destFile.toFile().setLastModified(mtime)
             val checksumBefore = md5Hex(destFile)
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertEquals(checksumBefore, md5Hex(destFile))
             assertEquals(mtime, destFile.toFile().lastModified())
@@ -565,7 +554,7 @@ val CopyEngineTests by testSuite(
             ws.source.resolve("sized.bin").writeBytes(byteArrayOf(1, 2, 3, 4, 5, 6))
             ws.dest.resolve("sized.bin").writeBytes(byteArrayOf(1, 2))
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertContentEquals(byteArrayOf(1, 2, 3, 4, 5, 6), ws.dest.resolve("sized.bin").readBytes())
         }
@@ -578,7 +567,7 @@ val CopyEngineTests by testSuite(
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
             val checksumBefore = md5Hex(destFile)
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertEquals(checksumBefore, md5Hex(destFile))
             assertEquals(sourceFile.toFile().lastModified(), destFile.toFile().lastModified())
@@ -592,7 +581,7 @@ val CopyEngineTests by testSuite(
             val destFile = ws.dest.resolve("diff.bin").also { it.writeBytes(destContent) }
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertContentEquals(sourceContent, destFile.readBytes())
         }
@@ -606,7 +595,7 @@ val CopyEngineTests by testSuite(
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
             assertTrue(sourceContent.size <= TestIoSizes.buffer)
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertContentEquals(sourceContent, destFile.readBytes())
             assertEquals(sourceFile.toFile().lastModified(), destFile.toFile().lastModified())
@@ -621,7 +610,7 @@ val CopyEngineTests by testSuite(
             val destFile = ws.dest.resolve("stream-diff.bin").also { it.writeBytes(destContent) }
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertContentEquals(sourceContent, destFile.readBytes())
             assertEquals(sourceFile.toFile().lastModified(), destFile.toFile().lastModified())
@@ -636,7 +625,7 @@ val CopyEngineTests by testSuite(
             destFile.toFile().setLastModified(sourceFile.toFile().lastModified() - 60_000)
             val checksumBefore = md5Hex(destFile)
 
-            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+            ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
 
             assertEquals(checksumBefore, md5Hex(destFile))
             assertEquals(sourceFile.toFile().lastModified(), destFile.toFile().lastModified())
@@ -652,7 +641,7 @@ val CopyEngineTests by testSuite(
             val done = CountDownLatch(1)
             val worker = thread(name = "copy-pause-test", isDaemon = true) {
                 try {
-                    ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+                    ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
                 } finally {
                     done.countDown()
                 }
@@ -684,7 +673,7 @@ val CopyEngineTests by testSuite(
             val done = CountDownLatch(1)
             val worker = thread(name = "copy-cancel-test", isDaemon = true) {
                 try {
-                    ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList(), ws.ignoreMessages)
+                    ws.engine.copy(ws.source.toString(), ws.dest.toString(), emptyList())
                 } finally {
                     done.countDown()
                 }
@@ -704,7 +693,6 @@ val CopyEngineTests by testSuite(
         test("copy still finishes when file scan returns null") { directory ->
             val ws = CopyEngineWorkspace(directory)
             ws.installNullFillStore()
-            val messages = mutableListOf<String>()
             val progress = mutableListOf<Int>()
             var fileCount: Long? = null
             var subfolderCount: Long? = null
@@ -713,7 +701,6 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                OnMessage { msg, _ -> messages.add(msg) },
                 progress::add,
                 { files, folders ->
                     fileCount = files
@@ -725,7 +712,6 @@ val CopyEngineTests by testSuite(
             assertEquals(0L, fileCount)
             assertEquals(0L, subfolderCount)
             assertEquals(listOf(100), progress)
-            assertTrue(messages.isEmpty())
         }
 
         test("onCopyDecision reports copied and skipped files") { directory ->
@@ -740,8 +726,7 @@ val CopyEngineTests by testSuite(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                ws.ignoreMessages,
-                onProgress = {},
+                                onProgress = {},
                 onCounts = { _, _ -> },
                 onCopyDecision = decisions::add,
             )
@@ -754,19 +739,16 @@ val CopyEngineTests by testSuite(
             val ws = CopyEngineWorkspace(directory)
             ws.installNullFillStore()
             ws.engine.copyStateProvider = { CopyState.DELETING }
-            val messages = mutableListOf<String>()
             val progress = mutableListOf<Int>()
 
             ws.engine.deleteOrphans(
                 ws.source.toString(),
                 ws.dest.toString(),
                 emptyList(),
-                OnMessage { msg, _ -> messages.add(msg) },
                 progress::add,
             )
 
             assertEquals(listOf(100), progress)
-            assertTrue(messages.isEmpty())
         }
     }
 }
