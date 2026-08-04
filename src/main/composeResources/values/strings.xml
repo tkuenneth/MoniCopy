@@ -13,7 +13,7 @@
     <string name="finished_deleting">Finished deleting orphaned files and folders</string>
     <string name="could_not_copy">Could not copy %1$s: %2$s</string>
     <string name="could_not_delete">Could not delete %1$s (%2$s)</string>
-    <string name="could_not_delete_path">Could not delete %1$s</string>
+    <string name="not_a_directory">%1$s is not a directory</string>
     <string name="source_folder">Source folder</string>
     <string name="destination_folder">Destination folder</string>
     <string name="delete_orphaned_files">Delete orphaned files and folders</string>

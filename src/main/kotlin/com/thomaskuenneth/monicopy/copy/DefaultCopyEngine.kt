@@ -24,9 +24,9 @@ import com.thomaskuenneth.monicopy.blockingGetString
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.could_not_copy
 import com.thomaskuenneth.monicopy.generated.resources.could_not_delete
-import com.thomaskuenneth.monicopy.generated.resources.could_not_delete_path
 import com.thomaskuenneth.monicopy.generated.resources.finished_copying
 import com.thomaskuenneth.monicopy.generated.resources.finished_deleting
+import com.thomaskuenneth.monicopy.generated.resources.not_a_directory
 import com.thomaskuenneth.monicopy.generated.resources.started_copying
 import com.thomaskuenneth.monicopy.generated.resources.started_deleting
 import org.koin.core.annotation.Single
@@ -272,16 +272,15 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         }
         for (folder in folders) {
             checkForPause()
-            val absolutePath = folder.absolutePath
             if (!folder.isDirectory) {
-                logger.log(Level.SEVERE, "$absolutePath is not a directory")
+                val message = blockingGetString(Res.string.not_a_directory, folder.absolutePath)
+                logger.log(Level.SEVERE, message)
+                onMessage(message)
             } else {
                 val children = folder.list()
                 if (children != null && children.isEmpty()) {
                     if (folder.absoluteFile != destDir.absoluteFile) {
-                        if (!folder.delete()) {
-                            onMessage(blockingGetString(Res.string.could_not_delete_path, absolutePath))
-                        }
+                        deletePath(folder, onMessage)
                     }
                 }
             }
@@ -306,16 +305,20 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         if (Files.exists(sourceEntry.toPath(), LinkOption.NOFOLLOW_LINKS)) {
             return
         }
+        deletePath(destEntry, onMessage)
+    }
+
+    private fun deletePath(path: File, onMessage: (String) -> Unit) {
         try {
-            Files.delete(destEntry.toPath())
-        } catch (_: IOException) {
-            onMessage(
-                blockingGetString(
-                    Res.string.could_not_delete,
-                    destEntry.absolutePath,
-                    sourceEntry.absolutePath,
-                ),
+            Files.delete(path.toPath())
+        } catch (e: IOException) {
+            val message = blockingGetString(
+                Res.string.could_not_delete,
+                path.absolutePath,
+                e.localizedMessage,
             )
+            logger.log(Level.SEVERE, message)
+            onMessage(message)
         }
     }
 
