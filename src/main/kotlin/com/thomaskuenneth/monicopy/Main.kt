@@ -87,11 +87,20 @@ fun main() {
 
 private fun setupLogging() {
     val logger = Logger.getGlobal()
+    val home = File(System.getProperty("user.home", "."))
+    val logName = "MoniCopy.log"
+    runCatching {
+        home.listFiles { _, name -> name.startsWith(logName) }?.forEach { it.delete() }
+    }
     try {
-        val logFile = File(System.getProperty("user.home", "."), "MoniCopy.log")
-        val handler = FileHandler(logFile.absolutePath, false)
-        handler.formatter = SimpleFormatter()
+        val handler = FileHandler(File(home, logName).absolutePath, false).apply {
+            formatter = SimpleFormatter()
+        }
         logger.addHandler(handler)
+        Runtime.getRuntime().addShutdownHook(Thread {
+            logger.removeHandler(handler)
+            handler.close()
+        })
     } catch (e: IOException) {
         logger.log(java.util.logging.Level.SEVERE, "Could not create file handler", e)
     }
