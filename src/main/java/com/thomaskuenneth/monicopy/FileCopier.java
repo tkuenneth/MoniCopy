@@ -51,8 +51,8 @@ public class FileCopier {
         long read = 0;
         long num;
         long buflen = buffer.length;
-        File parent = to.getParentFile();
-        parent.mkdirs();
+        //noinspection ResultOfMethodCallIgnored
+        to.getParentFile().mkdirs();
         try (FileInputStream in = new FileInputStream(from);
              FileOutputStream out = new FileOutputStream(to)) {
             while ((num = (lenFrom - read)) > 0) {
@@ -77,8 +77,8 @@ public class FileCopier {
                     "invalid length %d for buffer of size %d", lenFrom, from.length);
             return false;
         }
-        File parent = to.getParentFile();
-        parent.mkdirs();
+        //noinspection ResultOfMethodCallIgnored
+        to.getParentFile().mkdirs();
         try (FileOutputStream out = new FileOutputStream(to)) {
             out.write(from, 0, (int) lenFrom);
         } catch (IOException e) {
