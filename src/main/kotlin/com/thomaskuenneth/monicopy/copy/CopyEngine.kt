@@ -15,6 +15,23 @@
  */
 package com.thomaskuenneth.monicopy.copy
 
+import java.util.logging.Level
+
+interface OnMessage {
+    operator fun invoke(
+        message: String,
+        logLevel: Level? = null,
+    )
+}
+
+fun OnMessage(handler: (String, Level?) -> Unit): OnMessage =
+    object : OnMessage {
+        override fun invoke(message: String, logLevel: Level?) =
+            handler(message, logLevel)
+    }
+
+fun OnMessage.severe(message: String) = invoke(message, Level.SEVERE)
+
 interface CopyEngine {
     var copyStateProvider: () -> CopyState
     fun resume()
@@ -24,14 +41,14 @@ interface CopyEngine {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     )
 
     fun copy(
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
@@ -44,14 +61,14 @@ interface CopyEngine {
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     )
 
     fun deleteOrphans(
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
         deleteOrphans(sourcePath, destPath, ignores, onMessage)

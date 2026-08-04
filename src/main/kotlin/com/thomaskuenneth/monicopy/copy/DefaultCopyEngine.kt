@@ -90,7 +90,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     ) {
         copy(fromPath, toPath, ignores, onMessage, onProgress = {}, onCounts = { _, _ -> }, onCopyDecision = {}, preserveSymbolicLinks = true)
     }
@@ -99,7 +99,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
@@ -112,7 +112,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     ) {
         deleteOrphans(sourcePath, destPath, ignores, onMessage, onProgress = {})
     }
@@ -121,7 +121,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
         deleteOrphans(File(sourcePath), File(destPath), ignores, onMessage, onProgress)
@@ -131,7 +131,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         from: File,
         to: File,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
@@ -148,7 +148,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         sourceDir: File,
         destDir: File,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
         cancelled = false
@@ -162,7 +162,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         from: File,
         to: File,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
@@ -223,7 +223,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         preserveSymbolicLinks: Boolean,
         from: File,
         to: File,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     ) {
         if (!preserveSymbolicLinks) return
         symbolicLinkPreserver.preserve(symbolicLinks, from, to) { source, detail ->
@@ -231,17 +231,16 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         }
     }
 
-    private fun reportCouldNotCopy(path: String, detail: String?, onMessage: (String) -> Unit) {
+    private fun reportCouldNotCopy(path: String, detail: String?, onMessage: OnMessage) {
         val message = blockingGetString(Res.string.could_not_copy, path, detail.orEmpty())
-        logger.log(Level.SEVERE, message)
-        onMessage(message)
+        onMessage.severe(message)
     }
 
     private fun deleteOrphansInternal(
         sourceDir: File,
         destDir: File,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
     ) {
         onMessage(blockingGetString(Res.string.started_deleting))
@@ -276,8 +275,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             checkForPause()
             if (!folder.isDirectory) {
                 val message = blockingGetString(Res.string.not_a_directory, folder.absolutePath)
-                logger.log(Level.SEVERE, message)
-                onMessage(message)
+                onMessage.severe(message)
             } else {
                 val children = folder.list()
                 if (children != null && children.isEmpty()) {
@@ -300,7 +298,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         destEntry: File,
         sourceDir: File,
         destDir: File,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     ) {
         val name = relativePathUnder(destDir, destEntry)
         val sourceEntry = File(sourceDir, name)
@@ -310,7 +308,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
         deletePath(destEntry, onMessage)
     }
 
-    private fun deletePath(path: File, onMessage: (String) -> Unit) {
+    private fun deletePath(path: File, onMessage: OnMessage) {
         try {
             Files.delete(path.toPath())
         } catch (e: IOException) {
@@ -319,8 +317,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 path.absolutePath,
                 e.localizedMessage,
             )
-            logger.log(Level.SEVERE, message)
-            onMessage(message)
+            onMessage.severe(message)
         }
     }
 

@@ -55,7 +55,7 @@ val PhysicalCopyTests by testSuite(
             val engine = DefaultCopyEngine().apply {
                 copyStateProvider = { CopyState.COPYING }
             }
-            engine.copy(source.toString(), dest.toString(), emptyList()) { }
+            engine.copy(source.toString(), dest.toString(), emptyList(), OnMessage { _, _ -> })
 
             val files = listOf(
                 "half.bin" to halfBuffer,

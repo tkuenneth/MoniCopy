@@ -29,6 +29,8 @@ import com.thomaskuenneth.monicopy.platform.DirectoryChooser
 import com.thomaskuenneth.monicopy.platform.LogTimeFormatter
 import com.thomaskuenneth.monicopy.prepareDirectories
 import java.io.File
+import java.util.logging.Level
+import java.util.logging.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -95,6 +97,7 @@ class CopyViewModel(
     private val logTimeFormatter: LogTimeFormatter,
 ) : ViewModel() {
 
+    private val logger = Logger.getGlobal()
     private val _uiState = MutableStateFlow(CopyUiState())
     val uiState: StateFlow<CopyUiState> = _uiState.asStateFlow()
 
@@ -194,7 +197,7 @@ class CopyViewModel(
                         from,
                         to,
                         ignores,
-                        ::appendLog,
+                        OnMessage(::appendLog),
                         ::onCopyProgress,
                         ::onCounts,
                         ::onCopyDecision,
@@ -244,7 +247,10 @@ class CopyViewModel(
         }
     }
 
-    private fun appendLog(msg: String) {
+    private fun appendLog(msg: String, logLevel: Level? = null) {
+        if (logLevel != null) {
+            logger.log(logLevel, msg)
+        }
         val time = logTimeFormatter.format()
         val line = blockingGetString(Res.string.message_template, time, msg).trimEnd()
         val finishedCopying = blockingGetString(Res.string.finished_copying)
@@ -306,7 +312,7 @@ class CopyViewModel(
                             from,
                             to,
                             ignores,
-                            ::appendLog,
+                            OnMessage(::appendLog),
                             ::onOrphanProgress,
                         )
                         if (_uiState.value.copyState == CopyState.IDLE) return@launch

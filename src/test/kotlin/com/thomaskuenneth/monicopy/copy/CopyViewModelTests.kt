@@ -274,7 +274,7 @@ private class ControllableCopyEngine : CopyEngine {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     ) {
         copyEntered.countDown()
         if (blockCopy) {
@@ -288,7 +288,7 @@ private class ControllableCopyEngine : CopyEngine {
         fromPath: String,
         toPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
         onProgress: (Int) -> Unit,
         onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
         onCopyDecision: (copied: Boolean) -> Unit,
@@ -302,7 +302,7 @@ private class ControllableCopyEngine : CopyEngine {
         sourcePath: String,
         destPath: String,
         ignores: List<String>,
-        onMessage: (String) -> Unit,
+        onMessage: OnMessage,
     ) {
         deleteEntered.countDown()
         if (blockDelete) {

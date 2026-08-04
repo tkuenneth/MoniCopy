@@ -37,7 +37,7 @@ class CopyEngineWorkspace(val root: Path) {
         copyStateProvider = { CopyState.COPYING }
     }
 
-    fun ignoreMessages(@Suppress("UNUSED_PARAMETER") message: String) = Unit
+    val ignoreMessages = OnMessage { _, _ -> }
 
     fun installNullFillStore() {
         engine.fileStoreFactory = {
