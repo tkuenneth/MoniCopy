@@ -15,10 +15,10 @@
  */
 package com.thomaskuenneth.monicopy.copy
 
-import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.Instant
 
 enum class CopySessionReason {
     CouldNotCopy,
@@ -67,7 +67,7 @@ object CopySessionReporter {
                     append(thrown.stackTraceToString().trimEnd())
                 }
             }
-            entries.getValue(reason)[Instant.now()] = text
+            entries.getValue(reason)[NanoInstantGenerator.getPreciseInstant()] = text
             publishLocked()
         }
     }
@@ -79,5 +79,15 @@ object CopySessionReporter {
         _report.value = CopySessionReport(
             entries = entries.mapValues { (_, byTime) -> byTime.toMap() },
         )
+    }
+}
+
+object NanoInstantGenerator {
+    private val baselineInstant: Instant = Instant.now()
+    private val baselineNanoTime: Long = System.nanoTime()
+
+    fun getPreciseInstant(): Instant {
+        val nanosElapsed = System.nanoTime() - baselineNanoTime
+        return baselineInstant.plusNanos(nanosElapsed)
     }
 }
