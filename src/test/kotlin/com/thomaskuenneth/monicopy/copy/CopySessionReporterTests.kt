@@ -50,6 +50,18 @@ val CopySessionReporterTests by testSuite(
         }
     }
 
+    test("log keeps multiple rapid entries for the same reason") {
+        withCopySession {
+            CopySessionReporter.begin()
+            CopySessionReporter.log(CopySessionReason.CouldNotCopy, "first")
+            CopySessionReporter.log(CopySessionReason.CouldNotCopy, "second")
+
+            val byTime = CopySessionReporter.snapshot().getValue(CopySessionReason.CouldNotCopy)
+            assertEquals(2, byTime.size)
+            assertEquals(setOf("first", "second"), byTime.values.toSet())
+        }
+    }
+
     test("log with throwable includes the stack trace in the message") {
         withCopySession {
             CopySessionReporter.begin()
