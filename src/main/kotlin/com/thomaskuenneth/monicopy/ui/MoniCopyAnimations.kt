@@ -21,16 +21,53 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 object MoniCopyAnimations {
-    private val effectsSpec: FiniteAnimationSpec<Float> =
+    private val fallbackEffectsSpec: FiniteAnimationSpec<Float> =
         MotionScheme.expressive().defaultEffectsSpec()
 
-    val crossfadeSpec: FiniteAnimationSpec<Float> = effectsSpec
+    private val fallbackSpatialSpec: FiniteAnimationSpec<IntSize> =
+        MotionScheme.expressive().defaultSpatialSpec()
+
+    val crossfadeSpec: FiniteAnimationSpec<Float> = fallbackEffectsSpec
+
+    val spatialSpec: FiniteAnimationSpec<IntSize> = fallbackSpatialSpec
 
     fun fadeTransition(): ContentTransform =
-        fadeIn(animationSpec = effectsSpec) togetherWith
-            fadeOut(animationSpec = effectsSpec)
+        fadeIn(animationSpec = fallbackEffectsSpec) togetherWith
+            fadeOut(animationSpec = fallbackEffectsSpec)
+
+    @Composable
+    fun rememberCrossfadeSpec(): FiniteAnimationSpec<Float> {
+        val motionScheme = MaterialTheme.motionScheme
+        return remember(motionScheme) { motionScheme.defaultEffectsSpec() }
+    }
+
+    @Composable
+    fun rememberSpatialSpec(): FiniteAnimationSpec<IntSize> {
+        val motionScheme = MaterialTheme.motionScheme
+        return remember(motionScheme) { motionScheme.defaultSpatialSpec() }
+    }
+
+    @Composable
+    fun rememberPlacementSpec(): FiniteAnimationSpec<IntOffset> {
+        val motionScheme = MaterialTheme.motionScheme
+        return remember(motionScheme) { motionScheme.defaultSpatialSpec() }
+    }
+
+    @Composable
+    fun rememberFadeTransition(): ContentTransform {
+        val effectsSpec = rememberCrossfadeSpec()
+        return remember(effectsSpec) {
+            fadeIn(animationSpec = effectsSpec) togetherWith
+                fadeOut(animationSpec = effectsSpec)
+        }
+    }
 }

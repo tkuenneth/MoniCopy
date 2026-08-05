@@ -35,14 +35,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.plugin.module.dsl.startKoin
 import java.awt.Desktop
-import java.io.File
-import java.io.IOException
-import java.util.logging.FileHandler
-import java.util.logging.Logger
-import java.util.logging.SimpleFormatter
 
 fun main() {
-    setupLogging()
     startKoin<MoniCopyKoinApp>()
     application {
         Window(
@@ -82,26 +76,5 @@ fun main() {
                 )
             }
         }
-    }
-}
-
-private fun setupLogging() {
-    val logger = Logger.getGlobal()
-    val home = File(System.getProperty("user.home", "."))
-    val logName = "MoniCopy.log"
-    runCatching {
-        home.listFiles { _, name -> name.startsWith(logName) }?.forEach { it.delete() }
-    }
-    try {
-        val handler = FileHandler(File(home, logName).absolutePath, false).apply {
-            formatter = SimpleFormatter()
-        }
-        logger.addHandler(handler)
-        Runtime.getRuntime().addShutdownHook(Thread {
-            logger.removeHandler(handler)
-            handler.close()
-        })
-    } catch (e: IOException) {
-        logger.log(java.util.logging.Level.SEVERE, "Could not create file handler", e)
     }
 }

@@ -16,14 +16,22 @@
 package com.thomaskuenneth.monicopy.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,6 +53,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.thomaskuenneth.monicopy.copy.CopySessionReporter
 import com.thomaskuenneth.monicopy.copy.CopyUiState
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.copy_progress
@@ -85,6 +95,11 @@ private sealed interface OrphanPhaseStatus {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun InFlightPane(uiState: CopyUiState) {
+    val sessionReport by CopySessionReporter.report.collectAsStateWithLifecycle()
+    val paneFade = MoniCopyAnimations.rememberCrossfadeSpec()
+    val paneSpatial = MoniCopyAnimations.rememberSpatialSpec()
+    val contentFade = MoniCopyAnimations.rememberFadeTransition()
+    val itemPlacement = MoniCopyAnimations.rememberPlacementSpec()
     val panePadding = PaddingValues(
         horizontal = UIConstants.PREFERRED_HORIZONTAL_PADDING,
         vertical = UIConstants.PREFERRED_VERTICAL_PADDING,
@@ -112,21 +127,28 @@ fun InFlightPane(uiState: CopyUiState) {
             paused = uiState.isPaused,
         )
     }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = panePadding,
-        verticalArrangement = Arrangement.spacedBy(
-            UIConstants.PREFERRED_VERTICAL_PADDING,
-            Alignment.CenterVertically,
-        ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxSize(),
+            contentPadding = panePadding,
+            verticalArrangement = Arrangement.spacedBy(
+                UIConstants.PREFERRED_VERTICAL_PADDING,
+                Alignment.CenterVertically,
+            ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             if (discoveryStatus != null) {
                 item(key = "discovery") {
                     AnimatedContent(
                         targetState = discoveryStatus,
-                        transitionSpec = { MoniCopyAnimations.fadeTransition() },
-                        modifier = Modifier.animateItem(),
+                        transitionSpec = { contentFade },
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = paneFade,
+                            fadeOutSpec = paneFade,
+                            placementSpec = itemPlacement,
+                        ),
                         label = "discoveryStatus",
                     ) { status ->
                         when (status) {
@@ -169,8 +191,12 @@ fun InFlightPane(uiState: CopyUiState) {
                                 CopyPhaseStatus.Complete -> "complete"
                             }
                         },
-                        transitionSpec = { MoniCopyAnimations.fadeTransition() },
-                        modifier = Modifier.animateItem(),
+                        transitionSpec = { contentFade },
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = paneFade,
+                            fadeOutSpec = paneFade,
+                            placementSpec = itemPlacement,
+                        ),
                         label = "copyPhaseStatus",
                     ) { status ->
                         when (status) {
@@ -205,8 +231,12 @@ fun InFlightPane(uiState: CopyUiState) {
                                 OrphanPhaseStatus.Complete -> "complete"
                             }
                         },
-                        transitionSpec = { MoniCopyAnimations.fadeTransition() },
-                        modifier = Modifier.animateItem(),
+                        transitionSpec = { contentFade },
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = paneFade,
+                            fadeOutSpec = paneFade,
+                            placementSpec = itemPlacement,
+                        ),
                         label = "orphanPhaseStatus",
                     ) { status ->
                         when (status) {
@@ -235,8 +265,31 @@ fun InFlightPane(uiState: CopyUiState) {
                                 )
                             }
                         }
+                    }
                 }
             }
+        }
+        AnimatedVisibility(
+            visible = sessionReport.hasContent,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .fillMaxHeight()
+                .padding(panePadding),
+            enter = fadeIn(animationSpec = paneFade) +
+                expandHorizontally(
+                    animationSpec = paneSpatial,
+                    expandFrom = Alignment.Start,
+                ),
+            exit = fadeOut(animationSpec = paneFade) +
+                shrinkHorizontally(
+                    animationSpec = paneSpatial,
+                    shrinkTowards = Alignment.Start,
+                ),
+        ) {
+            SessionReportPane(
+                report = sessionReport,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

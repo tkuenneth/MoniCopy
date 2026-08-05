@@ -24,19 +24,19 @@ import com.thomaskuenneth.monicopy.blockingGetString
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.could_not_copy
 import com.thomaskuenneth.monicopy.generated.resources.could_not_delete
+import com.thomaskuenneth.monicopy.generated.resources.could_not_set_last_modified
+import com.thomaskuenneth.monicopy.generated.resources.interruption_while_joining_threads
+import com.thomaskuenneth.monicopy.generated.resources.interruption_while_waiting_to_resume
 import com.thomaskuenneth.monicopy.generated.resources.not_a_directory
 import org.koin.core.annotation.Single
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
-import java.util.logging.Level
-import java.util.logging.Logger
 
 @Single
 class DefaultCopyEngine : CopyEngine, Pausable {
 
-    private val logger = Logger.getGlobal()
     private val copier = FileCopier()
     private val mdFrom = MD5()
     private val sbFrom = StringBuilder()
@@ -76,7 +76,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
                     (lock as Object).wait()
                 } catch (ex: InterruptedException) {
-                    logger.log(Level.SEVERE, "interruption while waiting to resume", ex)
+                    CopySessionReporter.log(
+                        CopySessionReason.Interrupted,
+                        blockingGetString(Res.string.interruption_while_waiting_to_resume),
+                        ex,
+                    )
                 }
             }
         }
@@ -218,7 +222,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
 
     private fun reportCouldNotCopy(path: String, detail: String?) {
         val message = blockingGetString(Res.string.could_not_copy, path, detail.orEmpty())
-        logger.log(Level.SEVERE, message)
+        CopySessionReporter.log(CopySessionReason.CouldNotCopy, message)
     }
 
     private fun deleteOrphansInternal(
@@ -257,7 +261,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             checkForPause()
             if (!folder.isDirectory) {
                 val message = blockingGetString(Res.string.not_a_directory, folder.absolutePath)
-                logger.log(Level.SEVERE, message)
+                CopySessionReporter.log(CopySessionReason.NotADirectory, message)
             } else {
                 val children = folder.list()
                 if (children != null && children.isEmpty()) {
@@ -297,7 +301,7 @@ class DefaultCopyEngine : CopyEngine, Pausable {
                 path.absolutePath,
                 e.localizedMessage,
             )
-            logger.log(Level.SEVERE, message)
+            CopySessionReporter.log(CopySessionReason.CouldNotDelete, message)
         }
     }
 
@@ -374,7 +378,11 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             tFrom.join()
             tTo.join()
         } catch (e: InterruptedException) {
-            logger.log(Level.SEVERE, "interruption while joining threads", e)
+            CopySessionReporter.log(
+                CopySessionReason.Interrupted,
+                blockingGetString(Res.string.interruption_while_joining_threads),
+                e,
+            )
             return true
         }
         val copy = sbFrom.toString() != sbTo.toString()
@@ -382,7 +390,14 @@ class DefaultCopyEngine : CopyEngine, Pausable {
             try {
                 destination.setLastModified(fileToCopy.lastModified())
             } catch (e: IllegalArgumentException) {
-                logger.log(Level.SEVERE, "setLastModified()", e)
+                CopySessionReporter.log(
+                    CopySessionReason.CouldNotSetLastModified,
+                    blockingGetString(
+                        Res.string.could_not_set_last_modified,
+                        destination.absolutePath,
+                    ),
+                    e,
+                )
             }
         }
         return copy

@@ -180,6 +180,7 @@ class CopyViewModel(
             CopyState.IDLE -> {
                 val from = _uiState.value.sourceDir ?: return
                 val to = _uiState.value.destDir ?: return
+                CopySessionReporter.begin()
                 mutate { it.withClearedOperationUi(CopyState.COPYING) }
                 viewModelScope.launch(Dispatchers.Default) {
                     val ignores = _uiState.value.ignores.map { it.absolutePath }

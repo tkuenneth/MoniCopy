@@ -10,6 +10,9 @@
     <string name="could_not_copy">Could not copy %1$s: %2$s</string>
     <string name="could_not_delete">Could not delete %1$s (%2$s)</string>
     <string name="not_a_directory">%1$s is not a directory</string>
+    <string name="interruption_while_waiting_to_resume">Interrupted while waiting to resume</string>
+    <string name="interruption_while_joining_threads">Interrupted while comparing files</string>
+    <string name="could_not_set_last_modified">Could not set last modified on %1$s</string>
     <string name="source_folder">Source folder</string>
     <string name="destination_folder">Destination folder</string>
     <string name="delete_orphaned_files">Delete orphaned files and folders</string>
@@ -24,6 +27,12 @@
     <string name="copying_complete">Copying complete (%1$d copied, %2$d already there)</string>
     <string name="orphan_progress">Deleting orphaned files and folders</string>
     <string name="deleting_complete">Deleting orphaned files and folders complete</string>
+    <string name="session_issues">Issues</string>
+    <string name="session_reason_could_not_copy">Could not copy</string>
+    <string name="session_reason_could_not_delete">Could not delete</string>
+    <string name="session_reason_not_a_directory">Not a directory</string>
+    <string name="session_reason_interrupted">Interrupted</string>
+    <string name="session_reason_could_not_set_last_modified">Could not set last modified</string>
     <string name="progress_percent">%1$d%</string>
     <string name="finding_files_paused_a11y">Finding files to copy, paused</string>
     <string name="finding_orphans_paused_a11y">Finding orphaned files and folders, paused</string>
