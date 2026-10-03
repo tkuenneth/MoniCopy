@@ -118,7 +118,7 @@ compose.desktop {
                             .map { it == "true" }
                             .orElse(false)
                     )
-                    identity.set("Thomas Kuenneth")
+                    identity.set("Developer ID Application: Thomas Kuenneth (5DM49G5542)")
                 }
             }
             windows {
