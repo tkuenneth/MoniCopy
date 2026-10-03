@@ -139,10 +139,12 @@ jobs:
         with:
           name: monicopy_windows.zip
       - name: Create release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "monicopy_windows.zip,monicopy_macos.zip"
-          tag: ${{ needs.resolve-version.outputs.tag }}
-          name: MoniCopy ${{ needs.resolve-version.outputs.version }}
-          commit: ${{ github.sha }}
-          bodyFile: whatsnew.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.resolve-version.outputs.tag }}
+          VERSION: ${{ needs.resolve-version.outputs.version }}
+        run: |
+          gh release create "$TAG" monicopy_windows.zip monicopy_macos.zip \
+            --title "MoniCopy $VERSION" \
+            --notes-file whatsnew.md \
+            --target "$GITHUB_SHA"
