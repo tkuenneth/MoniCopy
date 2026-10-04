@@ -96,6 +96,7 @@ compose.desktop {
         }
         buildTypes.release.proguard {
             configurationFiles.from(project.file("compose-desktop.pro"))
+            optimize.set(false)
         }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
