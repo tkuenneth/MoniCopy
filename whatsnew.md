@@ -1,2 +1,7 @@
-- Copy problems appear live in an Issues pane beside progress
-- Issues are grouped by type with counts
+- Window size, position and state are remembered between launches
+- Source and destination folders can be cleared with a button inside their field
+- Recently used folders appear as chips below each folder field
+- Tooltips and screen reader labels for folder fields, clear buttons and chips
+- A divider separates the content from the button bar
+- Panes scroll edge to edge and the window has a minimum size
+- Updated libraries and tools
