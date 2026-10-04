@@ -122,6 +122,9 @@ fun main() {
             val appViewModel: AppViewModel = koinViewModel()
             val uiState by appViewModel.uiState.collectAsStateWithLifecycle()
             val title = stringResource(Res.string.title)
+            LaunchedEffect(Unit) {
+                window.minimumSize = window.insets.minimumWindowSize()
+            }
             LaunchedEffect(uiState.appVersion) {
                 window.title = "$title ${uiState.appVersion}"
             }

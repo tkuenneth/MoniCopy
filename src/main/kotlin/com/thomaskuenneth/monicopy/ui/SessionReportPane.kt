@@ -92,7 +92,7 @@ fun SessionReportPane(
             .ofLocalizedTime(FormatStyle.MEDIUM)
             .withZone(ZoneId.systemDefault())
     }
-    Column(modifier = modifier) {
+    Column(modifier = modifier.padding(vertical = UIConstants.PREFERRED_VERTICAL_PADDING)) {
         Text(
             text = stringResource(Res.string.session_issues),
             modifier = Modifier

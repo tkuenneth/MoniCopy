@@ -20,6 +20,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -51,7 +52,7 @@ fun MoniCopyScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(UIConstants.PREFERRED_VERTICAL_PADDING)
+                    .padding(horizontal = UIConstants.PREFERRED_HORIZONTAL_PADDING)
             ) {
                 Crossfade(
                     targetState = uiState.isOperationMode,
@@ -70,6 +71,7 @@ fun MoniCopyScreen(
                     }
                 }
             }
+            HorizontalDivider()
             AnimatedContent(
                 targetState = uiState.copyState.toActionBarState(),
                 modifier = Modifier

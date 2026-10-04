@@ -15,10 +15,18 @@
  */
 package com.thomaskuenneth.monicopy
 
+import androidx.window.core.layout.WindowSizeClass
 import java.awt.Desktop
+import java.awt.Dimension
+import java.awt.Insets
 import java.awt.desktop.AboutHandler
 import java.awt.desktop.PreferencesHandler
 import java.awt.desktop.QuitHandler
+
+fun Insets.minimumWindowSize(): Dimension = Dimension(
+    WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND + left + right,
+    WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND + top + bottom,
+)
 
 fun Desktop.installPreferencesHandler(handler: PreferencesHandler) {
     if (isSupported(Desktop.Action.APP_PREFERENCES)) {

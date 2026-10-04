@@ -143,7 +143,8 @@ private fun DirectoriesPane(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(vertical = UIConstants.PREFERRED_VERTICAL_PADDING),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(UIConstants.SMALL_VERTICAL_PADDING, Alignment.CenterVertically),
     ) {
@@ -206,7 +207,7 @@ private fun IgnoredDirectoriesPane(
     navigationState: NavigationState,
     showBackButton: Boolean,
 ) {
-    Column {
+    Column(modifier = Modifier.padding(vertical = UIConstants.PREFERRED_VERTICAL_PADDING)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
