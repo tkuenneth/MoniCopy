@@ -85,6 +85,12 @@ tasks.withType<Test>().configureEach {
     maxHeapSize = "1g"
 }
 
+tasks.register<JavaExec>("prepareScreenshots") {
+    description = "Creates the screenshot test data and writes matching MoniCopy preferences."
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass = "com.thomaskuenneth.monicopy.screenshots.ScreenshotSetupKt"
+}
+
 compose.desktop {
     application {
         mainClass = "com.thomaskuenneth.monicopy.MainKt"

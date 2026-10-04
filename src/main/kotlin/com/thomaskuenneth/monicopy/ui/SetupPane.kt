@@ -47,6 +47,7 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.HingePolicy
 import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
+import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.SupportingPaneScaffold
 import androidx.compose.material3.adaptive.layout.SupportingPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
@@ -89,7 +90,7 @@ fun SetupPane(
         scaffoldDirective = calculatePaneScaffoldDirective(
             windowAdaptiveInfo = currentWindowAdaptiveInfoV2(),
             verticalHingePolicy = HingePolicy.AlwaysAvoid,
-        ),
+        ).withoutAutoFocus(),
     )
     val scope = rememberCoroutineScope()
     val mainPaneHidden = navigator.scaffoldValue[SupportingPaneScaffoldRole.Main] == PaneAdaptedValue.Hidden
@@ -130,6 +131,17 @@ fun SetupPane(
         coroutineScope = scope,
     )
 }
+
+private fun PaneScaffoldDirective.withoutAutoFocus() = PaneScaffoldDirective(
+    maxHorizontalPartitions = maxHorizontalPartitions,
+    horizontalPartitionSpacerSize = horizontalPartitionSpacerSize,
+    maxVerticalPartitions = maxVerticalPartitions,
+    verticalPartitionSpacerSize = verticalPartitionSpacerSize,
+    defaultPanePreferredWidth = defaultPanePreferredWidth,
+    defaultPanePreferredHeight = defaultPanePreferredHeight,
+    excludedBounds = excludedBounds,
+    shouldAutoFocusCurrentDestination = false,
+)
 
 @Composable
 private fun DirectoriesPane(

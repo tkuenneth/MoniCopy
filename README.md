@@ -24,3 +24,8 @@ MoniCopy only copies new and changed files.
 ### Known limitations
 
 - MoniCopy cannot access files that are currently in use
+
+### Gradle cheat sheet
+
+- Run tests, including the Compose UI tests: `./gradlew test`
+- Update the README screenshots (macOS, needs screen recording and accessibility permission for the terminal): `scripts/capture-screenshots.sh`

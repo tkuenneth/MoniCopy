@@ -26,19 +26,23 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
 import com.thomaskuenneth.monicopy.NavigationState
 import com.thomaskuenneth.monicopy.copy.ControllableCopyEngine
 import com.thomaskuenneth.monicopy.copy.CopyPreferences
@@ -46,6 +50,7 @@ import com.thomaskuenneth.monicopy.copy.CopyViewModel
 import com.thomaskuenneth.monicopy.copy.RecordingCopyRepository
 import com.thomaskuenneth.monicopy.copy.ScriptedDirectoryChooser
 import com.thomaskuenneth.monicopy.generated.resources.Res
+import com.thomaskuenneth.monicopy.generated.resources.add_ignore
 import com.thomaskuenneth.monicopy.generated.resources.copy_all_files_and_folders_inside
 import com.thomaskuenneth.monicopy.generated.resources.delete_orphaned_files
 import com.thomaskuenneth.monicopy.generated.resources.ignored_directories
@@ -99,6 +104,25 @@ val MoniCopyScreenTests by testSuite(compartment = { TestCompartment.RealTime })
         }
     }
 
+    test("nothing is focused when the window opens") {
+        moniCopyScreenTest {
+            mainClock.advanceTimeBy(SETTLE_MILLIS)
+
+            onAllNodes(isFocused()).assertCountEquals(0)
+        }
+    }
+
+    test("opening the ignored directories does not move the focus into them") {
+        moniCopyScreenTest(MINIMUM_WINDOW) {
+            mainClock.advanceTimeBy(SETTLE_MILLIS)
+            onNodeWithText(labels.ignoredDirectories).performClick()
+            mainClock.advanceTimeBy(SETTLE_MILLIS)
+            onNodeWithText(labels.add).assertExists()
+
+            onAllNodes(isFocused()).assertCountEquals(0)
+        }
+    }
+
     test("the ignored directories pane keeps its top padding") {
         moniCopyScreenTest {
             assertEquals(
@@ -110,6 +134,11 @@ val MoniCopyScreenTests by testSuite(compartment = { TestCompartment.RealTime })
 }
 
 private const val SCROLL_DISTANCE = 100_000f
+private const val SETTLE_MILLIS = 2_000L
+private val MINIMUM_WINDOW = DpSize(
+    WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp,
+    WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp,
+)
 private val WIDE_SHORT_WINDOW = DpSize(920.dp, 300.dp)
 
 private class MoniCopyScreenLabels(
@@ -117,6 +146,7 @@ private class MoniCopyScreenLabels(
     val start: String,
     val deleteOrphans: String,
     val ignoredDirectories: String,
+    val add: String,
 )
 
 private class MoniCopyScreenScope(
@@ -138,6 +168,7 @@ private suspend fun moniCopyScreenTest(windowSize: DpSize = WIDE_SHORT_WINDOW, b
         start = getString(Res.string.start),
         deleteOrphans = getString(Res.string.delete_orphaned_files),
         ignoredDirectories = getString(Res.string.ignored_directories),
+        add = getString(Res.string.add_ignore),
     )
     val viewModel = CopyViewModel(
         engine = ControllableCopyEngine(),
