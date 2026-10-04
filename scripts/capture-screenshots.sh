@@ -16,12 +16,11 @@
 # destination are the /tmp folders and the window shows the /tmp recent folders.
 #
 # Usage: scripts/capture-screenshots.sh [app-path] [output-dir]
-# Without app-path, the release app of this project is built and used.
 # Needs screen recording and accessibility permission for the terminal running it.
 set -euo pipefail
 
 PROJECT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${1:-}"
+APP="${1:-/Applications/MoniCopy.app}"
 OUT="${2:-$PROJECT/screenshots}"
 ROOT="/tmp/monicopy-screenshots"
 DOMAINS=(com.thomaskuenneth.monicopy com.apple.java.util.prefs)
@@ -97,11 +96,6 @@ finish() {
 if [[ -n "$(pgrep -x MoniCopy || true)" ]]; then
     echo "MoniCopy is running; quit it first" >&2
     exit 1
-fi
-if [[ -z "$APP" ]]; then
-    log "building the release app"
-    (cd "$PROJECT" && ./gradlew -q createReleaseDistributable) > "$WORK/build.log" 2>&1 || { cat "$WORK/build.log" >&2; exit 1; }
-    APP="$PROJECT/build/compose/binaries/main-release/app/MoniCopy.app"
 fi
 [[ -d "$APP" ]] || { echo "app not found: $APP" >&2; exit 1; }
 mkdir -p "$OUT"
