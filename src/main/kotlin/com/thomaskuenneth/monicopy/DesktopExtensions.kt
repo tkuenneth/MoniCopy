@@ -18,6 +18,7 @@ package com.thomaskuenneth.monicopy
 import java.awt.Desktop
 import java.awt.desktop.AboutHandler
 import java.awt.desktop.PreferencesHandler
+import java.awt.desktop.QuitHandler
 
 fun Desktop.installPreferencesHandler(handler: PreferencesHandler) {
     if (isSupported(Desktop.Action.APP_PREFERENCES)) {
@@ -28,5 +29,11 @@ fun Desktop.installPreferencesHandler(handler: PreferencesHandler) {
 fun Desktop.installAboutHandler(handler: AboutHandler?) {
     if (isSupported(Desktop.Action.APP_ABOUT)) {
         setAboutHandler(handler)
+    }
+}
+
+fun Desktop.installQuitHandler(handler: QuitHandler) {
+    if (isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
+        setQuitHandler(handler)
     }
 }
