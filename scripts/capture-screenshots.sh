@@ -6,6 +6,7 @@
 #   macos_04.png  copying (once at least 20 % are done)
 #   macos_05.png  deleting orphaned files (once at least 30 % are done)
 #   macos_06.png  finished
+# Afterwards scripts/create_gif.sh turns them into MoniCopy-animated.gif.
 #
 # Source and destination live in /tmp/monicopy-screenshots and are created by the
 # prepareScreenshots Gradle task, which also writes matching MoniCopy preferences.
@@ -15,12 +16,14 @@
 # /tmp/monicopy-screenshots is deleted. A copy is only started when the saved source and
 # destination are the /tmp folders and the window shows the /tmp recent folders.
 #
-# Usage: scripts/capture-screenshots.sh [app-path] [output-dir]
+# Usage: scripts/capture-screenshots.sh [--build | app-path] [output-dir]
+# The app defaults to /Applications/MoniCopy.app; --build builds and uses the release app of this project.
 # Needs screen recording and accessibility permission for the terminal running it.
 set -euo pipefail
 
 PROJECT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="${1:-/Applications/MoniCopy.app}"
+WINDOW_ID=""
 OUT="${2:-$PROJECT/screenshots}"
 ROOT="/tmp/monicopy-screenshots"
 DOMAINS=(com.thomaskuenneth.monicopy com.apple.java.util.prefs)
@@ -96,6 +99,11 @@ finish() {
 if [[ -n "$(pgrep -x MoniCopy || true)" ]]; then
     echo "MoniCopy is running; quit it first" >&2
     exit 1
+fi
+if [[ "$APP" == "--build" ]]; then
+    log "building the release app"
+    (cd "$PROJECT" && ./gradlew -q createReleaseDistributable) > "$WORK/build.log" 2>&1 || { cat "$WORK/build.log" >&2; exit 1; }
+    APP="$PROJECT/build/compose/binaries/main-release/app/MoniCopy.app"
 fi
 [[ -d "$APP" ]] || { echo "app not found: $APP" >&2; exit 1; }
 mkdir -p "$OUT"
@@ -207,7 +215,8 @@ shows() { texts | grep -qxF "$1"; }
 finding_files_only() {
     local current
     current="$(texts)"
-    grep -qxF "Finding files to copy" <<< "$current" && ! grep -qxF "Start" <<< "$current"
+    grep -qxF "Finding files to copy" <<< "$current" && ! grep -qxF "Start" <<< "$current" &&
+        ! grep -qE "^[0-9]+ files in [0-9]+ folders$" <<< "$current"
 }
 
 uses_screenshot_folders() {
@@ -230,10 +239,7 @@ park_pointer() {
 }
 
 capture() {
-    local window
-    window="$("$WORK/window_id" "$APP_PID")"
-    [[ -n "$window" ]] || { echo "MoniCopy window not found" >&2; exit 1; }
-    screencapture -x -o -l"$window" "$OUT/$1"
+    screencapture -x -o -l"$WINDOW_ID" "$OUT/$1"
     log "wrote $OUT/$1"
 }
 
@@ -248,6 +254,8 @@ open -a "$APP"
 wait_until 30 "MoniCopy started" test -n "$(app_pid)"
 APP_PID="$(app_pid)"
 wait_until 30 "setup shown" shows "Start"
+WINDOW_ID="$("$WORK/window_id" "$APP_PID")"
+[[ -n "$WINDOW_ID" ]] || { echo "MoniCopy window not found" >&2; exit 1; }
 park_pointer
 sleep 1
 capture macos_01.png
@@ -277,3 +285,6 @@ capture macos_05.png
 wait_until 300 "finished" shows "Finish"
 sleep 1
 capture macos_06.png
+
+# 4. Animated GIF
+"$PROJECT/scripts/create_gif.sh" "$OUT"

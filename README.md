@@ -9,17 +9,7 @@
 
 MoniCopy only copies new and changed files.
 
-<img src="./screenshots/macos_01.png" alt="MoniCopy on macOS — choose source and destination" width="30%" />
-&nbsp;
-<img src="./screenshots/macos_02.png" alt="MoniCopy on macOS — ignored directories" width="30%" />
-&nbsp;
-<img src="./screenshots/macos_03.png" alt="MoniCopy on macOS — finding files to copy" width="30%" />
-&nbsp;
-<img src="./screenshots/macos_04.png" alt="MoniCopy on macOS — copying in progress" width="30%" />
-&nbsp;
-<img src="./screenshots/macos_05.png" alt="MoniCopy on macOS — deleting orphaned files" width="30%" />
-&nbsp;
-<img src="./screenshots/macos_06.png" alt="MoniCopy on macOS — finished" width="30%" />
+<img src="./screenshots/MoniCopy-animated.gif" alt="MoniCopy on macOS — choosing source and destination, ignored directories, finding files to copy, copying, deleting orphaned files, finished" width="600" />
 
 ### Known limitations
 
@@ -28,4 +18,4 @@ MoniCopy only copies new and changed files.
 ### Gradle cheat sheet
 
 - Run tests, including the Compose UI tests: `./gradlew test`
-- Update the README screenshots (macOS, needs screen recording and accessibility permission for the terminal): `scripts/capture-screenshots.sh`
+- Update the README screenshots and the animated GIF (macOS, needs screen recording and accessibility permission for the terminal): `scripts/capture-screenshots.sh`
