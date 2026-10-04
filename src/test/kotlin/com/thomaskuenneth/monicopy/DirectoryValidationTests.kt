@@ -26,6 +26,24 @@ import kotlin.test.assertTrue
 
 val DirectoryValidationTests by testSuite {
     temporaryDirectoryFixture().asParameterForEach {
+        val missingDirectoryCases = listOf(
+            MissingDirectoryCase("source", hasSource = false, hasDest = true),
+            MissingDirectoryCase("destination", hasSource = true, hasDest = false),
+            MissingDirectoryCase("source and destination", hasSource = false, hasDest = false),
+        )
+        for ((missing, hasSource, hasDest) in missingDirectoryCases) {
+            test("missing $missing cannot proceed and reports no issue") { directory ->
+                val source = directory.createSubdirectory("source")
+                val dest = directory.createSubdirectory("dest")
+                assertTrue(validateDirectories(source, dest).canProceed)
+
+                val result = validateDirectories(source.takeIf { hasSource }, dest.takeIf { hasDest })
+
+                assertNull(result.issue)
+                assertFalse(result.canProceed)
+            }
+        }
+
         test("dest nested under source is reported as Overlap") { directory ->
             val source = directory.toFile()
             val dest = directory.resolve("nested-dest").also { it.createDirectories() }.toFile()
@@ -38,7 +56,7 @@ val DirectoryValidationTests by testSuite {
 
         test("unreadable source is reported as CannotRead") { directory ->
             val missingSource = directory.resolve("missing-source").toFile().absolutePath
-            val dest = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath
+            val dest = directory.createSubdirectory("dest")
 
             val result = validateDirectories(missingSource, dest)
 
@@ -47,7 +65,7 @@ val DirectoryValidationTests by testSuite {
         }
 
         test("unwritable destination is reported as CannotWrite") { directory ->
-            val source = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath
+            val source = directory.createSubdirectory("source")
             val missingDest = directory.resolve("missing-dest").toFile().absolutePath
 
             val result = validateDirectories(source, missingDest)
@@ -57,8 +75,8 @@ val DirectoryValidationTests by testSuite {
         }
 
         test("readable source and writable destination can proceed") { directory ->
-            val source = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath
-            val dest = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath
+            val source = directory.createSubdirectory("source")
+            val dest = directory.createSubdirectory("dest")
 
             val result = validateDirectories(source, dest)
 
@@ -78,10 +96,10 @@ val DirectoryValidationTests by testSuite {
             assertTrue(dest.isDirectory())
         }
     }
-
-    test("null source or dest cannot proceed") {
-        assertFalse(validateDirectories(null, "/tmp").canProceed)
-        assertFalse(validateDirectories("/tmp", null).canProceed)
-        assertNull(validateDirectories(null, null).issue)
-    }
 }
+
+private data class MissingDirectoryCase(
+    val missing: String,
+    val hasSource: Boolean,
+    val hasDest: Boolean,
+)

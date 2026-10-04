@@ -24,6 +24,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteRecursively
 
 fun TestSuiteScope.temporaryDirectoryFixture(
@@ -51,3 +52,6 @@ fun <T : Any> TestSuiteScope.temporaryDirectoryBasedFixture(
         }
     }
 }
+
+fun Path.createSubdirectory(name: String): String =
+    resolve(name).createDirectories().toFile().absolutePath

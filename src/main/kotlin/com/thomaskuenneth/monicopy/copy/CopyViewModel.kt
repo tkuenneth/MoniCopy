@@ -20,8 +20,6 @@ import androidx.lifecycle.viewModelScope
 import com.thomaskuenneth.monicopy.blockingGetString
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.add_ignored_directory
-import com.thomaskuenneth.monicopy.generated.resources.destination_folder
-import com.thomaskuenneth.monicopy.generated.resources.source_folder
 import com.thomaskuenneth.monicopy.platform.DirectoryChooser
 import com.thomaskuenneth.monicopy.prepareDirectories
 import java.io.File
@@ -67,6 +65,16 @@ data class CopyUiState(
 
     val isPaused: Boolean
         get() = copyState == CopyState.COPY_PAUSED || copyState == CopyState.DELETE_PAUSED
+
+    fun directory(role: DirectoryRole): String? = when (role) {
+        DirectoryRole.Source -> sourceDir
+        DirectoryRole.Destination -> destDir
+    }
+
+    fun withDirectory(role: DirectoryRole, path: String?): CopyUiState = when (role) {
+        DirectoryRole.Source -> copy(sourceDir = path)
+        DirectoryRole.Destination -> copy(destDir = path)
+    }
 
     fun withClearedOperationUi(copyState: CopyState): CopyUiState = copy(
         copyState = copyState,
@@ -145,24 +153,15 @@ class CopyViewModel(
         repository.savePreserveSymbolicLinks(enabled)
     }
 
-    fun selectSource() {
-        val title = blockingGetString(Res.string.source_folder)
-        val result = directoryChooser.chooseDirectory(title, _uiState.value.sourceDir)
-        if (result != null) {
-            repository.saveSourceDir(result)
-            mutate { it.copy(sourceDir = result) }
-            maybePrepareDirectories()
+    fun selectDirectory(role: DirectoryRole) {
+        val title = blockingGetString(role.title)
+        directoryChooser.chooseDirectory(title, _uiState.value.directory(role))?.let { path ->
+            updateDirectory(role, path)
         }
     }
 
-    fun selectDest() {
-        val title = blockingGetString(Res.string.destination_folder)
-        val result = directoryChooser.chooseDirectory(title, _uiState.value.destDir)
-        if (result != null) {
-            repository.saveDestDir(result)
-            mutate { it.copy(destDir = result) }
-            maybePrepareDirectories()
-        }
+    fun clearDirectory(role: DirectoryRole) {
+        updateDirectory(role, null)
     }
 
     fun cancelOperation() {
@@ -229,6 +228,15 @@ class CopyViewModel(
                 ignores = prefs.ignores.map(::File),
             )
         }
+    }
+
+    private fun updateDirectory(role: DirectoryRole, path: String?) {
+        when (role) {
+            DirectoryRole.Source -> repository.saveSourceDir(path)
+            DirectoryRole.Destination -> repository.saveDestDir(path)
+        }
+        mutate { it.withDirectory(role, path) }
+        maybePrepareDirectories()
     }
 
     private fun maybePrepareDirectories() {

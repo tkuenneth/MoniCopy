@@ -15,7 +15,7 @@
  */
 package com.thomaskuenneth.monicopy.copy
 
-import com.thomaskuenneth.monicopy.platform.DirectoryChooser
+import com.thomaskuenneth.monicopy.createSubdirectory
 import com.thomaskuenneth.monicopy.temporaryDirectoryBasedFixture
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.TestConfig
@@ -23,13 +23,13 @@ import de.infix.testBalloon.framework.core.TestFixture
 import de.infix.testBalloon.framework.core.TestSuiteScope
 import de.infix.testBalloon.framework.core.testScope
 import de.infix.testBalloon.framework.core.testSuite
+import java.io.File
 import java.nio.file.Path
-import java.util.ArrayDeque
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import kotlin.io.path.createDirectories
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.first
@@ -134,7 +134,7 @@ val CopyViewModelTests by testSuite(
         }
 
         test("add and remove ignored directories persist through the repository") { harness ->
-            val ignorePath = harness.directory.resolve("ignored").also { it.createDirectories() }.toFile().absolutePath
+            val ignorePath = harness.directory.createSubdirectory("ignored")
             harness.directoryChooser.enqueue(ignorePath)
 
             harness.viewModel.addIgnore()
@@ -151,20 +151,6 @@ val CopyViewModelTests by testSuite(
             assertEquals(listOf(listOf(ignorePath), emptyList()), harness.repository.savedIgnores)
         }
 
-        test("selecting source and destination updates state and repository") { harness ->
-            val source = harness.directory.resolve("picked-source").also { it.createDirectories() }.toFile().absolutePath
-            val dest = harness.directory.resolve("picked-dest").also { it.createDirectories() }.toFile().absolutePath
-            harness.directoryChooser.enqueue(source, dest)
-
-            harness.viewModel.selectSource()
-            harness.viewModel.selectDest()
-
-            assertEquals(source, harness.viewModel.uiState.value.sourceDir)
-            assertEquals(dest, harness.viewModel.uiState.value.destDir)
-            assertEquals(listOf(source), harness.repository.savedSourceDirs)
-            assertEquals(listOf(dest), harness.repository.savedDestDirs)
-        }
-
         test("FINISHED action returns to IDLE") { harness ->
             harness.viewModel.onDeleteOrphansChanged(false)
             harness.viewModel.onActionButtonClick()
@@ -179,8 +165,8 @@ val CopyViewModelTests by testSuite(
             val harness = CopyViewModelHarness(
                 directory = defaultHarness.directory,
                 preferences = CopyPreferences(
-                    sourceDir = defaultHarness.directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
-                    destDir = defaultHarness.directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,
+                    sourceDir = defaultHarness.directory.createSubdirectory("source"),
+                    destDir = defaultHarness.directory.createSubdirectory("dest"),
                     deleteOrphans = false,
                     preserveSymbolicLinks = false,
                 ),
@@ -197,7 +183,77 @@ val CopyViewModelTests by testSuite(
             assertEquals(true, harness.engine.lastPreserveSymbolicLinks)
         }
     }
+
+    for (role in DirectoryRole.entries) {
+        testSuite("$role directory") {
+            copyViewModelHarnessFixture().asParameterForEach {
+                test("selecting a directory updates state and repository") { harness ->
+                    val other = harness.viewModel.uiState.value.directory(role.other)
+                    val picked = harness.directory.createSubdirectory("picked-$role")
+                    harness.directoryChooser.enqueue(picked)
+
+                    harness.viewModel.selectDirectory(role)
+
+                    assertEquals(picked, harness.viewModel.uiState.value.directory(role))
+                    assertEquals(other, harness.viewModel.uiState.value.directory(role.other))
+                    assertEquals(listOf(picked), harness.repository.savedDirectories(role))
+                    assertTrue(harness.repository.savedDirectories(role.other).isEmpty())
+                }
+
+                test("cancelling the chooser keeps the directory and saves nothing") { harness ->
+                    val before = harness.viewModel.uiState.value.directory(role)
+                    harness.directoryChooser.enqueue(null)
+
+                    harness.viewModel.selectDirectory(role)
+
+                    assertEquals(1, harness.directoryChooser.requestCount)
+                    assertEquals(before, harness.viewModel.uiState.value.directory(role))
+                    assertTrue(harness.repository.savedDirectories(role).isEmpty())
+                }
+
+                test("clearing resets only this directory and persists the cleared value") { harness ->
+                    val other = harness.viewModel.uiState.value.directory(role.other)
+                    assertNotNull(harness.viewModel.uiState.value.directory(role))
+
+                    harness.viewModel.clearDirectory(role)
+
+                    assertNull(harness.viewModel.uiState.value.directory(role))
+                    assertEquals(other, harness.viewModel.uiState.value.directory(role.other))
+                    assertEquals(listOf(null), harness.repository.savedDirectories(role))
+                    assertTrue(harness.repository.savedDirectories(role.other).isEmpty())
+                    assertEquals(0, harness.directoryChooser.requestCount)
+                }
+
+                test("Start does nothing after clearing") { harness ->
+                    harness.viewModel.clearDirectory(role)
+
+                    harness.viewModel.onActionButtonClick()
+
+                    assertEquals(CopyState.IDLE, harness.viewModel.uiState.value.copyState)
+                    assertTrue(harness.engine.calls.isEmpty())
+                }
+
+                test("a cleared directory can be selected again and is created if missing") { harness ->
+                    harness.viewModel.clearDirectory(role)
+                    val picked = harness.directory.resolve("reselected-$role").toFile().absolutePath
+                    harness.directoryChooser.enqueue(picked)
+
+                    harness.viewModel.selectDirectory(role)
+
+                    assertEquals(picked, harness.viewModel.uiState.value.directory(role))
+                    assertEquals(listOf(null, picked), harness.repository.savedDirectories(role))
+                    assertTrue(File(picked).isDirectory)
+                }
+            }
+        }
+    }
 }
+
+private val DirectoryRole.other: DirectoryRole
+    get() = when (this) {
+        DirectoryRole.Source -> DirectoryRole.Destination
+        DirectoryRole.Destination -> DirectoryRole.Source
+    }
 
 private suspend fun CopyViewModelHarness.awaitFinished(): CopyUiState =
     withTimeout(5.seconds) {
@@ -213,8 +269,8 @@ private fun TestSuiteScope.copyViewModelHarnessFixture(): TestFixture<CopyViewMo
 private class CopyViewModelHarness(
     val directory: Path,
     preferences: CopyPreferences = CopyPreferences(
-        sourceDir = directory.resolve("source").also { it.createDirectories() }.toFile().absolutePath,
-        destDir = directory.resolve("dest").also { it.createDirectories() }.toFile().absolutePath,
+        sourceDir = directory.createSubdirectory("source"),
+        destDir = directory.createSubdirectory("dest"),
         deleteOrphans = true,
     ),
 ) {
@@ -227,118 +283,3 @@ private class CopyViewModelHarness(
         directoryChooser = directoryChooser,
     )
 }
-
-private class RecordingCopyRepository(
-    private val preferences: CopyPreferences,
-) : CopyRepository {
-    val savedSourceDirs = mutableListOf<String?>()
-    val savedDestDirs = mutableListOf<String?>()
-    val savedDeleteOrphans = mutableListOf<Boolean>()
-    val savedPreserveSymbolicLinks = mutableListOf<Boolean>()
-    val savedIgnores = mutableListOf<List<String>>()
-
-    override fun load(): CopyPreferences = preferences
-    override fun saveSourceDir(path: String?) {
-        savedSourceDirs += path
-    }
-
-    override fun saveDestDir(path: String?) {
-        savedDestDirs += path
-    }
-
-    override fun saveDeleteOrphans(enabled: Boolean) {
-        savedDeleteOrphans += enabled
-    }
-
-    override fun savePreserveSymbolicLinks(enabled: Boolean) {
-        savedPreserveSymbolicLinks += enabled
-    }
-
-    override fun saveIgnores(ignores: List<String>) {
-        savedIgnores += ignores
-    }
-}
-
-private class ControllableCopyEngine : CopyEngine {
-    val calls = mutableListOf<String>()
-    val copyEntered = CountDownLatch(1)
-    val copyFinished = CountDownLatch(1)
-    val deleteEntered = CountDownLatch(1)
-    private val copyGate = CountDownLatch(1)
-    private val deleteGate = CountDownLatch(1)
-    var blockCopy = false
-    var blockDelete = false
-    var resumeCount = 0
-    var cancelCount = 0
-    var lastPreserveSymbolicLinks: Boolean? = null
-
-    override var copyStateProvider: () -> CopyState = { CopyState.IDLE }
-
-    override fun resume() {
-        resumeCount++
-    }
-
-    override fun cancel() {
-        cancelCount++
-        copyGate.countDown()
-        deleteGate.countDown()
-    }
-
-    override fun copy(
-        fromPath: String,
-        toPath: String,
-        ignores: List<String>,
-    ) {
-        copyEntered.countDown()
-        if (blockCopy) {
-            copyGate.await()
-        }
-        calls += "copy"
-        copyFinished.countDown()
-    }
-
-    override fun copy(
-        fromPath: String,
-        toPath: String,
-        ignores: List<String>,
-        onProgress: (Int) -> Unit,
-        onCounts: (fileCount: Long, subfolderCount: Long) -> Unit,
-        onCopyDecision: (copied: Boolean) -> Unit,
-        preserveSymbolicLinks: Boolean,
-    ) {
-        lastPreserveSymbolicLinks = preserveSymbolicLinks
-        copy(fromPath, toPath, ignores)
-    }
-
-    override fun deleteOrphans(
-        sourcePath: String,
-        destPath: String,
-        ignores: List<String>,
-    ) {
-        deleteEntered.countDown()
-        if (blockDelete) {
-            deleteGate.await()
-        }
-        calls += "deleteOrphans"
-    }
-
-    fun releaseCopy() {
-        copyGate.countDown()
-    }
-
-    fun releaseDelete() {
-        deleteGate.countDown()
-    }
-}
-
-private class ScriptedDirectoryChooser : DirectoryChooser {
-    private val results = ArrayDeque<String?>()
-
-    fun enqueue(vararg paths: String?) {
-        results.addAll(paths.toList())
-    }
-
-    override fun chooseDirectory(title: String, initialPath: String?): String? =
-        if (results.isEmpty()) null else results.removeFirst()
-}
-

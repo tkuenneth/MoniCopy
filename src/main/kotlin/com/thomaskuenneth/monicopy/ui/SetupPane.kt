@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import com.thomaskuenneth.monicopy.NavigationState
 import com.thomaskuenneth.monicopy.copy.CopyUiState
 import com.thomaskuenneth.monicopy.copy.CopyViewModel
+import com.thomaskuenneth.monicopy.copy.DirectoryRole
 import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.add_ignore
 import com.thomaskuenneth.monicopy.generated.resources.back
@@ -158,20 +159,22 @@ private fun DirectoriesPane(
         verticalArrangement = Arrangement.spacedBy(UIConstants.SMALL_VERTICAL_PADDING, Alignment.CenterVertically),
     ) {
         Text(stringResource(Res.string.copy_all_files_and_folders_inside))
-        DirectoryLink(
-            path = uiState.sourceDir,
-            onClick = viewModel::selectSource,
-            modifier = Modifier
-                .focusRequester(source)
-                .focusProperties { next = destination },
+        DirectoryField(
+            role = DirectoryRole.Source,
+            path = uiState.directory(DirectoryRole.Source),
+            onSelect = viewModel::selectDirectory,
+            onClear = viewModel::clearDirectory,
+            focusRequester = source,
+            nextFocusRequester = destination,
         )
         Text(stringResource(Res.string.to))
-        DirectoryLink(
-            path = uiState.destDir,
-            onClick = viewModel::selectDest,
-            modifier = Modifier
-                .focusRequester(destination)
-                .focusProperties { next = deleteOrphans },
+        DirectoryField(
+            role = DirectoryRole.Destination,
+            path = uiState.directory(DirectoryRole.Destination),
+            onSelect = viewModel::selectDirectory,
+            onClear = viewModel::clearDirectory,
+            focusRequester = destination,
+            nextFocusRequester = deleteOrphans,
         )
         if (warning.isNotEmpty()) {
             Text(warning, color = Color.Red)
@@ -200,24 +203,6 @@ private fun DirectoriesPane(
                 Text(stringResource(Res.string.ignored_directories))
             }
         }
-    }
-}
-
-@Composable
-private fun DirectoryLink(
-    path: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier,
-    ) {
-        Text(
-            text = path ?: "\u2026",
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 

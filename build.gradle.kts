@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.aboutlibraries.compose.m3)
     testImplementation(libs.testballoon.framework.core)
+    testImplementation(libs.compose.ui.test)
     testImplementation(kotlin("test"))
 }
 
