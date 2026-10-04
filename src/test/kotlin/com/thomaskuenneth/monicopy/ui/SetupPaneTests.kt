@@ -20,8 +20,11 @@ package com.thomaskuenneth.monicopy.ui
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performKeyInput
@@ -41,50 +44,125 @@ import com.thomaskuenneth.monicopy.generated.resources.delete_orphaned_files
 import com.thomaskuenneth.monicopy.temporaryDirectoryFixture
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
+import java.nio.file.Path
+import kotlin.test.assertTrue
 import org.jetbrains.compose.resources.getString
 
 val SetupPaneTests by testSuite(compartment = { TestCompartment.RealTime }) {
     temporaryDirectoryFixture().asParameterForEach {
-        test("Tab visits each directory and its clear button, then the orphans checkbox") { directory ->
-            val sourcePath = directory.createSubdirectory("source")
-            val clearSource = getString(DirectoryRole.Source.clearLabel)
-            val destinationPath = directory.createSubdirectory("dest")
-            val clearDestination = getString(DirectoryRole.Destination.clearLabel)
-            val deleteOrphans = getString(Res.string.delete_orphaned_files)
-            val viewModel = CopyViewModel(
-                engine = ControllableCopyEngine(),
-                repository = RecordingCopyRepository(
-                    CopyPreferences(
-                        sourceDir = sourcePath,
-                        destDir = destinationPath,
-                    ),
-                ),
-                directoryChooser = ScriptedDirectoryChooser(),
-            )
-            runComposeUiTest {
-                setContent {
-                    val uiState by viewModel.uiState.collectAsState()
-                    SetupPane(
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        navigationState = NavigationState(),
-                    )
-                }
-                val tabOrder = listOf(
-                    onNodeWithText(sourcePath),
-                    onNodeWithContentDescription(clearSource),
-                    onNodeWithText(destinationPath),
-                    onNodeWithContentDescription(clearDestination),
-                    onNodeWithText(deleteOrphans),
-                )
-                tabOrder.first().requestFocus()
+        test("Tab visits each directory, its clear button and its chip row, then the orphans checkbox") { directory ->
+            val paths = SetupPanePaths(directory)
+            val labels = SetupPaneLabels.load()
 
-                tabOrder.zipWithNext().forEach { (current, next) ->
-                    current.assertIsFocused()
-                    current.performKeyInput { pressKey(Key.Tab) }
-                    next.assertIsFocused()
-                }
+            setupPaneTest(paths.preferencesWithHistories()) {
+                assertTabOrder(
+                    onNodeWithContentDescription(labels.sourceTitle),
+                    onNodeWithContentDescription(labels.clearSource),
+                    chip(paths.earlierSource),
+                    onNodeWithContentDescription(labels.destinationTitle),
+                    onNodeWithContentDescription(labels.clearDestination),
+                    chip(paths.earlierDestination),
+                    onNodeWithText(labels.deleteOrphans),
+                )
             }
         }
+
+        test("each chip row appears beneath its directory") { directory ->
+            val paths = SetupPanePaths(directory)
+            val labels = SetupPaneLabels.load()
+
+            setupPaneTest(paths.preferencesWithHistories()) {
+                val sourceField = onNodeWithContentDescription(labels.sourceTitle).getBoundsInRoot()
+                val sourceChip = chip(paths.earlierSource).getBoundsInRoot()
+                val destinationField = onNodeWithContentDescription(labels.destinationTitle).getBoundsInRoot()
+                val destinationChip = chip(paths.earlierDestination).getBoundsInRoot()
+
+                assertTrue(sourceChip.top >= sourceField.bottom)
+                assertTrue(destinationField.top >= sourceChip.bottom)
+                assertTrue(destinationChip.top >= destinationField.bottom)
+            }
+        }
+
+        test("the current directories get no chips") { directory ->
+            val paths = SetupPanePaths(directory)
+            val labels = SetupPaneLabels.load()
+
+            setupPaneTest(CopyPreferences(sourceDir = paths.source, destDir = paths.destination)) {
+                chip(paths.source).assertDoesNotExist()
+                chip(paths.destination).assertDoesNotExist()
+                assertTabOrder(
+                    onNodeWithContentDescription(labels.sourceTitle),
+                    onNodeWithContentDescription(labels.clearSource),
+                    onNodeWithContentDescription(labels.destinationTitle),
+                    onNodeWithContentDescription(labels.clearDestination),
+                    onNodeWithText(labels.deleteOrphans),
+                )
+            }
+        }
+    }
+}
+
+private class SetupPanePaths(directory: Path) {
+    val source = directory.createSubdirectory("source")
+    val destination = directory.createSubdirectory("destination")
+    val earlierSource = directory.createSubdirectory("earlier-source")
+    val earlierDestination = directory.createSubdirectory("earlier-destination")
+
+    fun preferencesWithHistories() = CopyPreferences(
+        sourceDir = source,
+        destDir = destination,
+        histories = mapOf(
+            DirectoryRole.Source to listOf(source, earlierSource),
+            DirectoryRole.Destination to listOf(destination, earlierDestination),
+        ),
+    )
+}
+
+private class SetupPaneLabels(
+    val sourceTitle: String,
+    val clearSource: String,
+    val destinationTitle: String,
+    val clearDestination: String,
+    val deleteOrphans: String,
+) {
+    companion object {
+        suspend fun load() = SetupPaneLabels(
+            sourceTitle = getString(DirectoryRole.Source.title),
+            clearSource = getString(DirectoryRole.Source.clearLabel),
+            destinationTitle = getString(DirectoryRole.Destination.title),
+            clearDestination = getString(DirectoryRole.Destination.clearLabel),
+            deleteOrphans = getString(Res.string.delete_orphaned_files),
+        )
+    }
+}
+
+private fun ComposeUiTest.chip(path: String): SemanticsNodeInteraction =
+    onNodeWithText(directoryChipLabel(path))
+
+private fun assertTabOrder(vararg nodes: SemanticsNodeInteraction) {
+    nodes.first().requestFocus()
+    nodes.toList().zipWithNext().forEach { (current, next) ->
+        current.assertIsFocused()
+        current.performKeyInput { pressKey(Key.Tab) }
+        next.assertIsFocused()
+    }
+}
+
+private fun setupPaneTest(preferences: CopyPreferences, block: ComposeUiTest.() -> Unit) {
+    val viewModel = CopyViewModel(
+        engine = ControllableCopyEngine(),
+        repository = RecordingCopyRepository(preferences),
+        directoryChooser = ScriptedDirectoryChooser(),
+    )
+    runComposeUiTest {
+        setContent {
+            val uiState by viewModel.uiState.collectAsState()
+            SetupPane(
+                uiState = uiState,
+                viewModel = viewModel,
+                navigationState = NavigationState(),
+            )
+        }
+        block()
     }
 }

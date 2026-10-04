@@ -19,13 +19,16 @@ import com.thomaskuenneth.monicopy.generated.resources.Res
 import com.thomaskuenneth.monicopy.generated.resources.clear_destination_folder
 import com.thomaskuenneth.monicopy.generated.resources.clear_source_folder
 import com.thomaskuenneth.monicopy.generated.resources.destination_folder
+import com.thomaskuenneth.monicopy.generated.resources.recent_destination_folders
+import com.thomaskuenneth.monicopy.generated.resources.recent_source_folders
 import com.thomaskuenneth.monicopy.generated.resources.source_folder
 import org.jetbrains.compose.resources.StringResource
 
 enum class DirectoryRole(
     val title: StringResource,
     val clearLabel: StringResource,
+    val recentLabel: StringResource,
 ) {
-    Source(Res.string.source_folder, Res.string.clear_source_folder),
-    Destination(Res.string.destination_folder, Res.string.clear_destination_folder),
+    Source(Res.string.source_folder, Res.string.clear_source_folder, Res.string.recent_source_folders),
+    Destination(Res.string.destination_folder, Res.string.clear_destination_folder, Res.string.recent_destination_folders),
 }

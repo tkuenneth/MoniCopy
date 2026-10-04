@@ -26,14 +26,13 @@ private val prefs: Preferences =
 @Single
 class DefaultCopyRepository : CopyRepository {
     override fun load(): CopyPreferences {
-        val ignores = prefs.get(KEY_IGNORES, "").split("\n")
-            .filter { it.isNotEmpty() && File(it).isDirectory }
         return CopyPreferences(
             deleteOrphans = prefs.getBoolean(DELETE_ORPHANS, false),
             preserveSymbolicLinks = prefs.getBoolean(PRESERVE_SYMBOLIC_LINKS, true),
             sourceDir = prefs.get(KEY_FILE_FROM, "").takeIf { it.isNotEmpty() },
             destDir = prefs.get(KEY_FILE_TO, "").takeIf { it.isNotEmpty() },
-            ignores = ignores,
+            ignores = readDirectories(KEY_IGNORES),
+            histories = DirectoryRole.entries.associateWith { readDirectories(it.historyKey) },
         )
     }
 
@@ -58,7 +57,18 @@ class DefaultCopyRepository : CopyRepository {
     }
 
     override fun saveIgnores(ignores: List<String>) {
-        prefs.put(KEY_IGNORES, ignores.joinToString("\n"))
+        writeDirectories(KEY_IGNORES, ignores)
+    }
+
+    override fun saveHistory(role: DirectoryRole, paths: List<String>) {
+        writeDirectories(role.historyKey, paths)
+    }
+
+    private fun readDirectories(key: String): List<String> =
+        prefs.get(key, "").split("\n").filter { it.isNotEmpty() && File(it).isDirectory }
+
+    private fun writeDirectories(key: String, paths: List<String>) {
+        prefs.put(key, paths.joinToString("\n"))
         prefs.flush()
     }
 
@@ -68,5 +78,11 @@ class DefaultCopyRepository : CopyRepository {
         private const val KEY_IGNORES = "ignores"
         private const val DELETE_ORPHANS = "deleteOrphanedFiles"
         private const val PRESERVE_SYMBOLIC_LINKS = "preserveSymbolicLinks"
+
+        private val DirectoryRole.historyKey: String
+            get() = when (this) {
+                DirectoryRole.Source -> "fileFromHistory"
+                DirectoryRole.Destination -> "fileToHistory"
+            }
     }
 }

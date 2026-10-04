@@ -17,6 +17,8 @@
     <string name="destination_folder">Destination folder</string>
     <string name="clear_source_folder">Clear source folder</string>
     <string name="clear_destination_folder">Clear destination folder</string>
+    <string name="recent_source_folders">Recent source folders</string>
+    <string name="recent_destination_folders">Recent destination folders</string>
     <string name="delete_orphaned_files">Delete orphaned files and folders</string>
     <string name="preserve_symbolic_links">Preserve symbolic links</string>
     <string name="no_overlap">The source folder must not contain the destination</string>

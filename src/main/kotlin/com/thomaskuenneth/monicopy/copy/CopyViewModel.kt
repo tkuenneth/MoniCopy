@@ -40,6 +40,7 @@ data class CopyUiState(
     val sourceDir: String? = null,
     val destDir: String? = null,
     val ignores: List<File> = emptyList(),
+    val histories: Map<DirectoryRole, List<String>> = emptyMap(),
     val selectedIgnores: Set<File> = emptySet(),
     val deleteOrphans: Boolean = false,
     val preserveSymbolicLinks: Boolean = true,
@@ -75,6 +76,13 @@ data class CopyUiState(
         DirectoryRole.Source -> copy(sourceDir = path)
         DirectoryRole.Destination -> copy(destDir = path)
     }
+
+    fun history(role: DirectoryRole): List<String> = histories[role].orEmpty()
+
+    fun recentDirectories(role: DirectoryRole): List<String> = history(role).filterNot { it == directory(role) }
+
+    fun withHistory(role: DirectoryRole, paths: List<String>): CopyUiState =
+        copy(histories = histories + (role to paths))
 
     fun withClearedOperationUi(copyState: CopyState): CopyUiState = copy(
         copyState = copyState,
@@ -156,8 +164,15 @@ class CopyViewModel(
     fun selectDirectory(role: DirectoryRole) {
         val title = blockingGetString(role.title)
         directoryChooser.chooseDirectory(title, _uiState.value.directory(role))?.let { path ->
-            updateDirectory(role, path)
+            selectRecentDirectory(role, path)
         }
+    }
+
+    fun selectRecentDirectory(role: DirectoryRole, path: String) {
+        updateDirectory(role, path)
+        val history = _uiState.value.history(role).withRecentDirectory(path)
+        mutate { it.withHistory(role, history) }
+        repository.saveHistory(role, history)
     }
 
     fun clearDirectory(role: DirectoryRole) {
@@ -220,12 +235,18 @@ class CopyViewModel(
     private fun loadPreferences() {
         val prefs = repository.load()
         _uiState.update {
-            it.copy(
+            val loaded = it.copy(
                 deleteOrphans = prefs.deleteOrphans,
                 preserveSymbolicLinks = prefs.preserveSymbolicLinks,
                 sourceDir = prefs.sourceDir,
                 destDir = prefs.destDir,
                 ignores = prefs.ignores.map(::File),
+            )
+            loaded.copy(
+                histories = DirectoryRole.entries.associateWith { role ->
+                    val history = prefs.histories[role].orEmpty()
+                    loaded.directory(role)?.let(history::withRecentDirectory) ?: history
+                },
             )
         }
     }

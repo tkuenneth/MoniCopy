@@ -13,15 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.thomaskuenneth.monicopy.ui
+package com.thomaskuenneth.monicopy.copy
 
-import androidx.compose.ui.unit.dp
+const val DIRECTORY_HISTORY_SIZE = 5
 
-object UIConstants {
-    val PREFERRED_VERTICAL_PADDING = 16.dp
-    val PREFERRED_HORIZONTAL_PADDING = 16.dp
-    val SMALL_VERTICAL_PADDING = 8.dp
-    val SMALL_HORIZONTAL_PADDING = 8.dp
-    val LARGE_VERTICAL_PADDING = 24.dp
-    val LARGE_HORIZONTAL_PADDING = 24.dp
-}
+fun List<String>.withRecentDirectory(path: String): List<String> =
+    (listOf(path) + filterNot { it == path }).take(DIRECTORY_HISTORY_SIZE)

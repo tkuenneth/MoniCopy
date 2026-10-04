@@ -209,6 +209,7 @@ val CopyViewModelTests by testSuite(
                     assertEquals(1, harness.directoryChooser.requestCount)
                     assertEquals(before, harness.viewModel.uiState.value.directory(role))
                     assertTrue(harness.repository.savedDirectories(role).isEmpty())
+                    assertTrue(harness.repository.savedHistories.getValue(role).isEmpty())
                 }
 
                 test("clearing resets only this directory and persists the cleared value") { harness ->
@@ -244,6 +245,88 @@ val CopyViewModelTests by testSuite(
                     assertEquals(listOf(null, picked), harness.repository.savedDirectories(role))
                     assertTrue(File(picked).isDirectory)
                 }
+
+                test("the history starts with the saved directory") { harness ->
+                    val saved = harness.viewModel.uiState.value.directory(role)
+
+                    assertEquals(listOf(saved), harness.viewModel.uiState.value.history(role))
+                }
+
+                test("the saved directory moves to the front of a persisted history that contains it") { defaultHarness ->
+                    val saved = assertNotNull(defaultHarness.viewModel.uiState.value.directory(role))
+                    val harness = defaultHarness.withHistory(role, listOf("/older", saved))
+
+                    assertEquals(listOf(saved, "/older"), harness.viewModel.uiState.value.history(role))
+                }
+
+                test("the saved directory is added to the front of a persisted history that lacks it") { defaultHarness ->
+                    val saved = assertNotNull(defaultHarness.viewModel.uiState.value.directory(role))
+                    val harness = defaultHarness.withHistory(role, listOf("/older"))
+
+                    assertEquals(listOf(saved, "/older"), harness.viewModel.uiState.value.history(role))
+                }
+
+                test("choosing a directory adds it to the front of this history only and persists it") { harness ->
+                    val initial = harness.viewModel.uiState.value.history(role)
+                    val otherHistory = harness.viewModel.uiState.value.history(role.other)
+                    val picked = harness.directory.createSubdirectory("picked-$role")
+                    harness.directoryChooser.enqueue(picked)
+
+                    harness.viewModel.selectDirectory(role)
+
+                    val expected = listOf(picked) + initial
+                    assertEquals(expected, harness.viewModel.uiState.value.history(role))
+                    assertEquals(listOf(expected), harness.repository.savedHistories.getValue(role))
+                    assertEquals(otherHistory, harness.viewModel.uiState.value.history(role.other))
+                    assertTrue(harness.repository.savedHistories.getValue(role.other).isEmpty())
+                }
+
+                test("selecting a recent directory fills the field and moves it to the front") { defaultHarness ->
+                    val saved = assertNotNull(defaultHarness.viewModel.uiState.value.directory(role))
+                    val harness = defaultHarness.withHistory(role, listOf(saved, "/older"))
+
+                    harness.viewModel.selectRecentDirectory(role, "/older")
+
+                    assertEquals("/older", harness.viewModel.uiState.value.directory(role))
+                    assertEquals(listOf("/older"), harness.repository.savedDirectories(role))
+                    assertEquals(listOf("/older", saved), harness.viewModel.uiState.value.history(role))
+                    assertEquals(listOf(listOf("/older", saved)), harness.repository.savedHistories.getValue(role))
+                    assertEquals(0, harness.directoryChooser.requestCount)
+                }
+
+                test("the current directory is not among the recent directories") { defaultHarness ->
+                    val saved = assertNotNull(defaultHarness.viewModel.uiState.value.directory(role))
+                    val harness = defaultHarness.withHistory(role, listOf(saved, "/older"))
+
+                    assertEquals(listOf("/older"), harness.viewModel.uiState.value.recentDirectories(role))
+                }
+
+                test("choosing another directory makes the previous one recent") { harness ->
+                    val previous = assertNotNull(harness.viewModel.uiState.value.directory(role))
+                    assertTrue(harness.viewModel.uiState.value.recentDirectories(role).isEmpty())
+                    harness.directoryChooser.enqueue(harness.directory.createSubdirectory("picked-$role"))
+
+                    harness.viewModel.selectDirectory(role)
+
+                    assertEquals(listOf(previous), harness.viewModel.uiState.value.recentDirectories(role))
+                }
+
+                test("clearing makes the cleared directory recent") { harness ->
+                    val cleared = assertNotNull(harness.viewModel.uiState.value.directory(role))
+
+                    harness.viewModel.clearDirectory(role)
+
+                    assertEquals(listOf(cleared), harness.viewModel.uiState.value.recentDirectories(role))
+                }
+
+                test("clearing keeps the history") { harness ->
+                    val history = harness.viewModel.uiState.value.history(role)
+
+                    harness.viewModel.clearDirectory(role)
+
+                    assertEquals(history, harness.viewModel.uiState.value.history(role))
+                    assertTrue(harness.repository.savedHistories.getValue(role).isEmpty())
+                }
             }
         }
     }
@@ -254,6 +337,12 @@ private val DirectoryRole.other: DirectoryRole
         DirectoryRole.Source -> DirectoryRole.Destination
         DirectoryRole.Destination -> DirectoryRole.Source
     }
+
+private fun CopyViewModelHarness.withHistory(role: DirectoryRole, history: List<String>) =
+    CopyViewModelHarness(
+        directory = directory,
+        preferences = preferences.copy(histories = mapOf(role to history)),
+    )
 
 private suspend fun CopyViewModelHarness.awaitFinished(): CopyUiState =
     withTimeout(5.seconds) {
@@ -268,7 +357,7 @@ private fun TestSuiteScope.copyViewModelHarnessFixture(): TestFixture<CopyViewMo
 
 private class CopyViewModelHarness(
     val directory: Path,
-    preferences: CopyPreferences = CopyPreferences(
+    val preferences: CopyPreferences = CopyPreferences(
         sourceDir = directory.createSubdirectory("source"),
         destDir = directory.createSubdirectory("dest"),
         deleteOrphans = true,

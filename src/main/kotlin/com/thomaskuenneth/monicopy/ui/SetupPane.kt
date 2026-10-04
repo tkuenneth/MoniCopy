@@ -18,7 +18,6 @@ package com.thomaskuenneth.monicopy.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,15 +53,10 @@ import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaffoldNavigator
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -137,7 +131,6 @@ fun SetupPane(
     )
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun DirectoriesPane(
     uiState: CopyUiState,
@@ -147,34 +140,24 @@ private fun DirectoriesPane(
 ) {
     val validation = rememberDirectoryValidation(uiState.sourceDir, uiState.destDir)
     val warning = validation.warningMessage()
-    val (source, destination, deleteOrphans, ignoredDirectories) =
-        remember { FocusRequester.createRefs() }
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .focusProperties { onEnter = { source.requestFocus() } }
-            .focusGroup(),
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(UIConstants.SMALL_VERTICAL_PADDING, Alignment.CenterVertically),
     ) {
         Text(stringResource(Res.string.copy_all_files_and_folders_inside))
-        DirectoryField(
+        DirectorySection(
             role = DirectoryRole.Source,
-            path = uiState.directory(DirectoryRole.Source),
-            onSelect = viewModel::selectDirectory,
-            onClear = viewModel::clearDirectory,
-            focusRequester = source,
-            nextFocusRequester = destination,
+            uiState = uiState,
+            viewModel = viewModel,
         )
         Text(stringResource(Res.string.to))
-        DirectoryField(
+        DirectorySection(
             role = DirectoryRole.Destination,
-            path = uiState.directory(DirectoryRole.Destination),
-            onSelect = viewModel::selectDirectory,
-            onClear = viewModel::clearDirectory,
-            focusRequester = destination,
-            nextFocusRequester = deleteOrphans,
+            uiState = uiState,
+            viewModel = viewModel,
         )
         if (warning.isNotEmpty()) {
             Text(warning, color = Color.Red)
@@ -184,25 +167,35 @@ private fun DirectoriesPane(
             label = stringResource(Res.string.delete_orphaned_files),
             checked = uiState.deleteOrphans,
             onCheckedChange = viewModel::onDeleteOrphansChanged,
-            modifier = Modifier
-                .focusRequester(deleteOrphans)
-                .focusProperties {
-                    next = if (showIgnoredDirectoriesButton) {
-                        ignoredDirectories
-                    } else {
-                        FocusRequester.Default
-                    }
-                },
         )
         if (showIgnoredDirectoriesButton) {
             Spacer(Modifier.height(UIConstants.PREFERRED_VERTICAL_PADDING))
-            TextButton(
-                onClick = onShowIgnoredDirectories,
-                modifier = Modifier.focusRequester(ignoredDirectories),
-            ) {
+            TextButton(onClick = onShowIgnoredDirectories) {
                 Text(stringResource(Res.string.ignored_directories))
             }
         }
+    }
+}
+
+@Composable
+private fun DirectorySection(
+    role: DirectoryRole,
+    uiState: CopyUiState,
+    viewModel: CopyViewModel,
+) {
+    DirectoryField(
+        role = role,
+        path = uiState.directory(role),
+        onSelect = viewModel::selectDirectory,
+        onClear = viewModel::clearDirectory,
+    )
+    val recentDirectories = uiState.recentDirectories(role)
+    if (recentDirectories.isNotEmpty()) {
+        RecentDirectoryChips(
+            label = stringResource(role.recentLabel),
+            paths = recentDirectories,
+            onSelect = { viewModel.selectRecentDirectory(role, it) },
+        )
     }
 }
 

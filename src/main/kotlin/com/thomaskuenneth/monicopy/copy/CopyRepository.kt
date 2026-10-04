@@ -21,6 +21,7 @@ data class CopyPreferences(
     val ignores: List<String> = emptyList(),
     val deleteOrphans: Boolean = false,
     val preserveSymbolicLinks: Boolean = true,
+    val histories: Map<DirectoryRole, List<String>> = emptyMap(),
 )
 
 interface CopyRepository {
@@ -30,4 +31,5 @@ interface CopyRepository {
     fun saveDeleteOrphans(enabled: Boolean)
     fun savePreserveSymbolicLinks(enabled: Boolean)
     fun saveIgnores(ignores: List<String>)
+    fun saveHistory(role: DirectoryRole, paths: List<String>)
 }

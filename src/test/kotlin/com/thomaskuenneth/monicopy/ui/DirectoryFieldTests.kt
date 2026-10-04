@@ -17,13 +17,12 @@
 
 package com.thomaskuenneth.monicopy.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ComposeUiTest
@@ -43,7 +42,14 @@ import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.thomaskuenneth.monicopy.copy.DirectoryRole
 import de.infix.testBalloon.framework.core.TestCompartment
 import de.infix.testBalloon.framework.core.testSuite
@@ -52,7 +58,8 @@ import org.jetbrains.compose.resources.getString
 
 private const val PATH = "/Volumes/Backup/Documents"
 private const val NEXT_CONTROL = "Next control"
-private const val DECOY_CONTROL = "Control composed in between"
+private const val LONG_PATH = "/Users/thomas/Development/Personal/Desktop/MoniCopy/build/backup"
+private val NARROW_FIELD_WIDTH = 160.dp
 
 private val activationKeyNames = mapOf(
     Key.Enter to "Enter",
@@ -63,6 +70,44 @@ private val activationKeyNames = mapOf(
 val DirectoryFieldTests by testSuite(compartment = { TestCompartment.RealTime }) {
     for (role in DirectoryRole.entries) {
         testSuite("$role") {
+            test("has the same height with and without a directory") {
+                assertEquals(directoryFieldHeight(role, PATH), directoryFieldHeight(role, path = null))
+            }
+
+            for (path in listOf(PATH, null)) {
+                test("the clickable area fills the field's full height when the path is ${path ?: "not set"}") {
+                    standaloneDirectoryField(role, path) {
+                        assertFillsHeight(onNodeWithText(path ?: EMPTY_DIRECTORY_PLACEHOLDER))
+                    }
+                }
+            }
+
+            test("the clear button keeps its full size when the path is too long for the field") {
+                val clearLabel = getString(role.clearLabel)
+                runComposeUiTest {
+                    var touchTarget = Dp.Unspecified
+                    setContent {
+                        touchTarget = LocalMinimumInteractiveComponentSize.current
+                        Box(Modifier.width(NARROW_FIELD_WIDTH)) {
+                            DirectoryField(role = role, path = LONG_PATH, onSelect = {}, onClear = {})
+                        }
+                    }
+
+                    assertEquals(touchTarget, onNodeWithContentDescription(clearLabel).getBoundsInRoot().width)
+                }
+            }
+
+            test("the clear button fills the field's full height") {
+                val clearLabel = getString(role.clearLabel)
+                standaloneDirectoryField(role, PATH) {
+                    assertFillsHeight(onNodeWithContentDescription(clearLabel))
+                }
+            }
+
+            test("is exactly as tall as Material's minimum touch target") {
+                assertEquals(minimumInteractiveComponentSize(), directoryFieldHeight(role, PATH))
+            }
+
             test("shows the path and a clear button when a directory is set") {
                 directoryFieldTest(role, PATH) {
                     onNodeWithText(PATH).assertIsDisplayed()
@@ -92,7 +137,7 @@ val DirectoryFieldTests by testSuite(compartment = { TestCompartment.RealTime })
                 }
             }
 
-            test("Tab moves from the field to the clear button, then to the next control") {
+            test("Tab moves from the field to the clear button, then to the next composed control") {
                 directoryFieldTest(role, PATH) {
                     field().requestFocus()
 
@@ -104,7 +149,7 @@ val DirectoryFieldTests by testSuite(compartment = { TestCompartment.RealTime })
                 }
             }
 
-            test("Tab moves from the field to the next control when no directory is set") {
+            test("Tab moves from the field to the next composed control when no directory is set") {
                 directoryFieldTest(role, path = null) {
                     field().requestFocus()
 
@@ -204,6 +249,33 @@ private class DirectoryFieldScope(
     }
 }
 
+private fun minimumInteractiveComponentSize(): Dp {
+    var size = Dp.Unspecified
+    runComposeUiTest {
+        setContent { size = LocalMinimumInteractiveComponentSize.current }
+    }
+    return size
+}
+
+private fun standaloneDirectoryField(role: DirectoryRole, path: String?, block: ComposeUiTest.() -> Unit) {
+    runComposeUiTest {
+        setContent { DirectoryField(role = role, path = path, onSelect = {}, onClear = {}) }
+        block()
+    }
+}
+
+private fun ComposeUiTest.assertFillsHeight(node: SemanticsNodeInteraction) {
+    assertEquals(onRoot().getBoundsInRoot().height, node.getBoundsInRoot().height)
+}
+
+private fun directoryFieldHeight(role: DirectoryRole, path: String?): Dp {
+    var height = Dp.Unspecified
+    standaloneDirectoryField(role, path) {
+        height = onRoot().getBoundsInRoot().height
+    }
+    return height
+}
+
 private suspend fun directoryFieldTest(
     role: DirectoryRole,
     path: String?,
@@ -214,22 +286,14 @@ private suspend fun directoryFieldTest(
     runComposeUiTest {
         val scope = DirectoryFieldScope(this, path ?: EMPTY_DIRECTORY_PLACEHOLDER, title, clearLabel)
         setContent {
-            val nextControl = remember { FocusRequester() }
             Column {
                 DirectoryField(
                     role = role,
                     path = path,
                     onSelect = { scope.events += FieldEvent.Select to it },
                     onClear = { scope.events += FieldEvent.Clear to it },
-                    nextFocusRequester = nextControl,
                 )
                 TextButton(onClick = {}) {
-                    Text(DECOY_CONTROL)
-                }
-                TextButton(
-                    onClick = {},
-                    modifier = Modifier.focusRequester(nextControl),
-                ) {
                     Text(NEXT_CONTROL)
                 }
             }

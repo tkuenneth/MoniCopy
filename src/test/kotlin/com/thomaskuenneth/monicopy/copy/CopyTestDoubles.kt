@@ -26,6 +26,7 @@ internal class RecordingCopyRepository(
     val savedDeleteOrphans = mutableListOf<Boolean>()
     val savedPreserveSymbolicLinks = mutableListOf<Boolean>()
     val savedIgnores = mutableListOf<List<String>>()
+    val savedHistories = DirectoryRole.entries.associateWith { mutableListOf<List<String>>() }
 
     fun savedDirectories(role: DirectoryRole): List<String?> = when (role) {
         DirectoryRole.Source -> savedSourceDirs
@@ -51,6 +52,10 @@ internal class RecordingCopyRepository(
 
     override fun saveIgnores(ignores: List<String>) {
         savedIgnores += ignores
+    }
+
+    override fun saveHistory(role: DirectoryRole, paths: List<String>) {
+        savedHistories.getValue(role) += paths
     }
 }
 

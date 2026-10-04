@@ -16,19 +16,22 @@
 package com.thomaskuenneth.monicopy.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -36,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -57,35 +59,26 @@ internal fun DirectoryField(
     onSelect: (DirectoryRole) -> Unit,
     onClear: (DirectoryRole) -> Unit,
     modifier: Modifier = Modifier,
-    focusRequester: FocusRequester = remember { FocusRequester() },
-    nextFocusRequester: FocusRequester = FocusRequester.Default,
 ) {
-    val clearFocusRequester = remember { FocusRequester() }
+    val focusRequester = remember { FocusRequester() }
     val title = stringResource(role.title)
     OutlinedCard(modifier = modifier) {
-        Row(
-            modifier = Modifier.padding(UIConstants.EXTRA_SMALL_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            WithPlainTooltip(
-                text = title,
-                modifier = Modifier.weight(1f, fill = false),
-            ) {
-                Text(
-                    text = path ?: EMPTY_DIRECTORY_PLACEHOLDER,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .focusRequester(focusRequester)
-                        .focusProperties { next = if (path != null) clearFocusRequester else nextFocusRequester }
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable(role = Role.Button) { onSelect(role) }
-                        .semantics { contentDescription = title }
-                        .padding(
-                            horizontal = UIConstants.PREFERRED_HORIZONTAL_PADDING,
-                            vertical = UIConstants.SMALL_VERTICAL_PADDING,
-                        ),
-                )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.weight(1f, fill = false)) {
+                WithPlainTooltip(text = title) {
+                    Text(
+                        text = path ?: EMPTY_DIRECTORY_PLACEHOLDER,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .focusRequester(focusRequester)
+                            .clip(CardDefaults.outlinedShape)
+                            .clickable(role = Role.Button) { onSelect(role) }
+                            .semantics { contentDescription = title }
+                            .minimumInteractiveComponentSize()
+                            .padding(horizontal = UIConstants.PREFERRED_HORIZONTAL_PADDING),
+                    )
+                }
             }
             if (path != null) {
                 val clearLabel = stringResource(role.clearLabel)
@@ -95,10 +88,8 @@ internal fun DirectoryField(
                             onClear(role)
                             focusRequester.requestFocus()
                         },
-                        shapes = IconButtonDefaults.shapes(),
-                        modifier = Modifier
-                            .focusRequester(clearFocusRequester)
-                            .focusProperties { next = nextFocusRequester },
+                        modifier = Modifier.size(LocalMinimumInteractiveComponentSize.current),
+                        shape = CardDefaults.outlinedShape,
                     ) {
                         Icon(
                             imageVector = vectorResource(Res.drawable.ic_close),
@@ -115,14 +106,12 @@ internal fun DirectoryField(
 @Composable
 private fun WithPlainTooltip(
     text: String,
-    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     TooltipBox(
         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
         tooltip = { PlainTooltip { Text(text) } },
         state = rememberTooltipState(),
-        modifier = modifier,
         content = content,
     )
 }
