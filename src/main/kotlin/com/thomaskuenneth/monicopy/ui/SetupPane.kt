@@ -152,7 +152,7 @@ private fun DirectoriesPane(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .focusProperties { enter = { source } }
+            .focusProperties { onEnter = { source.requestFocus() } }
             .focusGroup(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(UIConstants.SMALL_VERTICAL_PADDING, Alignment.CenterVertically),
