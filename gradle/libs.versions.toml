@@ -1,14 +1,14 @@
 [versions]
-kotlin = "2.4.10"
-compose = "1.11.1"
-compose-material3 = "1.11.0-alpha07"
+kotlin = "2.4.20"
+compose = "1.12.1"
+compose-material3 = "1.13.0-alpha01"
 koin = "4.2.2"
-koin-plugin = "1.1.0"
+koin-plugin = "1.2.1"
 coroutines = "1.11.0"
-lifecycle = "2.11.0-beta01"
-adaptive = "1.3.0-alpha07"
-aboutlibraries = "15.0.4"
-testballoon = "1.0.1-K2.4.0"
+lifecycle = "2.11.0"
+adaptive = "1.3.0-rc01"
+aboutlibraries = "15.2.0"
+testballoon = "1.1.0"
 
 [libraries]
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
