@@ -35,15 +35,24 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.plugin.module.dsl.startKoin
 import java.awt.Desktop
+import java.awt.GraphicsEnvironment
+import java.awt.Toolkit
 
 fun main() {
     startKoin<MoniCopyKoinApp>()
+    val screenDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice
+    val configuration = screenDevice.defaultConfiguration
+    val insets = Toolkit.getDefaultToolkit().getScreenInsets(configuration)
+    val screenBounds = configuration.bounds
+    val density = configuration.defaultTransform.scaleX
+    val availableWidth = ((screenBounds.width - insets.left - insets.right) / density).dp
+    val availableHeight = ((screenBounds.height - insets.top - insets.bottom) / density).dp
     application {
         Window(
             onCloseRequest = ::exitApplication,
             state = rememberWindowState(
-                width = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp,
-                height = WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp,
+                width = WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND.dp.coerceAtMost(availableWidth),
+                height = WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND.dp.coerceAtMost(availableHeight),
             ),
             icon = painterResource(Res.drawable.app_icon),
         ) {
